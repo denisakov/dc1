@@ -29,6 +29,8 @@ gem 'nokogiri', '1.5.5'
 
 gem 'roo', '1.2.3'
 
+gem 'hoe', '2.8.0'
+
 group :test do
   gem 'capybara', '1.1.2'
 end
