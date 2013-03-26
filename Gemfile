@@ -23,9 +23,9 @@ end
 
 gem 'jquery-rails', '2.0.2'
 
-gem 'data_active', '~> 0.0.4'
-
 gem 'nokogiri', '1.5.5'
+
+gem 'mechanize', '2.6.0'
 
 gem 'roo', '1.2.3'
 
