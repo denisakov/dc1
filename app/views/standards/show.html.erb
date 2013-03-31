@@ -1,0 +1,15 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <b>Name:</b>
+  <%= @standard.name %>
+</p>
+
+<p>
+  <b>Project:</b>
+  <%= @standard.project_id %>
+</p>
+
+
+<%= link_to 'Edit', edit_standard_path(@standard) %> |
+<%= link_to 'Back', standards_path %>

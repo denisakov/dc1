@@ -1,10 +1,10 @@
-<%= form_for(@standart) do |f| %>
-  <% if @standart.errors.any? %>
+<%= form_for(@standard) do |f| %>
+  <% if @standard.errors.any? %>
     <div id="error_explanation">
-      <h2><%= pluralize(@standart.errors.count, "error") %> prohibited this standart from being saved:</h2>
+      <h2><%= pluralize(@standard.errors.count, "error") %> prohibited this standard from being saved:</h2>
 
       <ul>
-      <% @standart.errors.full_messages.each do |msg| %>
+      <% @standard.errors.full_messages.each do |msg| %>
         <li><%= msg %></li>
       <% end %>
       </ul>

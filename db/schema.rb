@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130324172827) do
+ActiveRecord::Schema.define(:version => 20130330235943) do
 
   create_table "countries", :force => true do |t|
     t.string   "name"
@@ -26,13 +26,13 @@ ActiveRecord::Schema.define(:version => 20130324172827) do
     t.datetime "updated_at", :null => false
   end
 
-  create_table "standarts", :force => true do |t|
+  create_table "standards", :force => true do |t|
     t.string   "name"
     t.integer  "project_id"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
 
-  add_index "standarts", ["project_id"], :name => "index_standarts_on_project_id"
+  add_index "standards", ["project_id"], :name => "index_standards_on_project_id"
 
 end

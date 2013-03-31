@@ -3,8 +3,8 @@
 <table>
   <tr>
     <th>Title</th>
-    <th>Countries</th>
-    <th>Standarts</th>
+    <th>Host country</th>
+    <th>Standards</th>
     <th></th>
     <th></th>
     <th></th>
@@ -13,8 +13,8 @@
 <% @projects.each do |project| %>
   <tr>
     <td><%= project.title %></td>
-    <td><%= project.countries %></td>
-    <td><%= project.standarts %></td>
+    <td><%= Country.find_by_project_id(project.id).name %></td>
+    <td><%= Standard.find_by_project_id(project.id).name %></td>
    
     <td><%= link_to 'Show', project %></td>
     <td><%= link_to 'Edit', edit_project_path(project) %></td>

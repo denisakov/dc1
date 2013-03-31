@@ -21,7 +21,7 @@ require 'spec_helper'
 describe StandardsController do
 
   # This should return the minimal set of attributes required to create a valid
-  # standard. As you add validations to standard, be sure to
+  # Standard. As you add validations to Standard, be sure to
   # update the return value of this method accordingly.
   def valid_attributes
     {}
@@ -29,14 +29,14 @@ describe StandardsController do
   
   # This should return the minimal set of values that should be in the session
   # in order to pass any filters (e.g. authentication) defined in
-  # standardsController. Be sure to keep this updated too.
+  # StandardsController. Be sure to keep this updated too.
   def valid_session
     {}
   end
 
   describe "GET index" do
     it "assigns all standards as @standards" do
-      Standard = Standard.create! valid_attributes
+      standard = Standard.create! valid_attributes
       get :index, {}, valid_session
       assigns(:standards).should eq([standard])
     end
@@ -44,7 +44,7 @@ describe StandardsController do
 
   describe "GET show" do
     it "assigns the requested standard as @standard" do
-      standard = standard.create! valid_attributes
+      standard = Standard.create! valid_attributes
       get :show, {:id => standard.to_param}, valid_session
       assigns(:standard).should eq(standard)
     end
@@ -53,13 +53,13 @@ describe StandardsController do
   describe "GET new" do
     it "assigns a new standard as @standard" do
       get :new, {}, valid_session
-      assigns(:standard).should be_a_new(standard)
+      assigns(:standard).should be_a_new(Standard)
     end
   end
 
   describe "GET edit" do
     it "assigns the requested standard as @standard" do
-      standard = standard.create! valid_attributes
+      standard = Standard.create! valid_attributes
       get :edit, {:id => standard.to_param}, valid_session
       assigns(:standard).should eq(standard)
     end
@@ -67,35 +67,35 @@ describe StandardsController do
 
   describe "POST create" do
     describe "with valid params" do
-      it "creates a new standard" do
+      it "creates a new Standard" do
         expect {
           post :create, {:standard => valid_attributes}, valid_session
-        }.to change(standard, :count).by(1)
+        }.to change(Standard, :count).by(1)
       end
 
       it "assigns a newly created standard as @standard" do
         post :create, {:standard => valid_attributes}, valid_session
-        assigns(:standard).should be_a(standard)
+        assigns(:standard).should be_a(Standard)
         assigns(:standard).should be_persisted
       end
 
       it "redirects to the created standard" do
         post :create, {:standard => valid_attributes}, valid_session
-        response.should redirect_to(standard.last)
+        response.should redirect_to(Standard.last)
       end
     end
 
     describe "with invalid params" do
       it "assigns a newly created but unsaved standard as @standard" do
         # Trigger the behavior that occurs when invalid params are submitted
-        standard.any_instance.stub(:save).and_return(false)
+        Standard.any_instance.stub(:save).and_return(false)
         post :create, {:standard => {}}, valid_session
-        assigns(:standard).should be_a_new(standard)
+        assigns(:standard).should be_a_new(Standard)
       end
 
       it "re-renders the 'new' template" do
         # Trigger the behavior that occurs when invalid params are submitted
-        standard.any_instance.stub(:save).and_return(false)
+        Standard.any_instance.stub(:save).and_return(false)
         post :create, {:standard => {}}, valid_session
         response.should render_template("new")
       end
@@ -105,23 +105,23 @@ describe StandardsController do
   describe "PUT update" do
     describe "with valid params" do
       it "updates the requested standard" do
-        standard = standard.create! valid_attributes
+        standard = Standard.create! valid_attributes
         # Assuming there are no other standards in the database, this
-        # specifies that the standard created on the previous line
+        # specifies that the Standard created on the previous line
         # receives the :update_attributes message with whatever params are
         # submitted in the request.
-        standard.any_instance.should_receive(:update_attributes).with({'these' => 'params'})
+        Standard.any_instance.should_receive(:update_attributes).with({'these' => 'params'})
         put :update, {:id => standard.to_param, :standard => {'these' => 'params'}}, valid_session
       end
 
       it "assigns the requested standard as @standard" do
-        standard = standard.create! valid_attributes
+        standard = Standard.create! valid_attributes
         put :update, {:id => standard.to_param, :standard => valid_attributes}, valid_session
         assigns(:standard).should eq(standard)
       end
 
       it "redirects to the standard" do
-        standard = standard.create! valid_attributes
+        standard = Standard.create! valid_attributes
         put :update, {:id => standard.to_param, :standard => valid_attributes}, valid_session
         response.should redirect_to(standard)
       end
@@ -129,17 +129,17 @@ describe StandardsController do
 
     describe "with invalid params" do
       it "assigns the standard as @standard" do
-        standard = standard.create! valid_attributes
+        standard = Standard.create! valid_attributes
         # Trigger the behavior that occurs when invalid params are submitted
-        standard.any_instance.stub(:save).and_return(false)
+        Standard.any_instance.stub(:save).and_return(false)
         put :update, {:id => standard.to_param, :standard => {}}, valid_session
         assigns(:standard).should eq(standard)
       end
 
       it "re-renders the 'edit' template" do
-        standard = standard.create! valid_attributes
+        standard = Standard.create! valid_attributes
         # Trigger the behavior that occurs when invalid params are submitted
-        standard.any_instance.stub(:save).and_return(false)
+        Standard.any_instance.stub(:save).and_return(false)
         put :update, {:id => standard.to_param, :standard => {}}, valid_session
         response.should render_template("edit")
       end
@@ -148,14 +148,14 @@ describe StandardsController do
 
   describe "DELETE destroy" do
     it "destroys the requested standard" do
-      standard = standard.create! valid_attributes
+      standard = Standard.create! valid_attributes
       expect {
         delete :destroy, {:id => standard.to_param}, valid_session
-      }.to change(standard, :count).by(-1)
+      }.to change(Standard, :count).by(-1)
     end
 
     it "redirects to the standards list" do
-      standard = standard.create! valid_attributes
+      standard = Standard.create! valid_attributes
       delete :destroy, {:id => standard.to_param}, valid_session
       response.should redirect_to(standards_url)
     end

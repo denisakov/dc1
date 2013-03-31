@@ -2,9 +2,9 @@ require 'spec_helper'
 
 describe "standards/new" do
   before(:each) do
-    assign(:standard, stub_model(standard,
+    assign(:standard, stub_model(Standard,
       :name => "MyString",
-      :project_id => nil
+      :project_id => ""
     ).as_new_record)
   end
 

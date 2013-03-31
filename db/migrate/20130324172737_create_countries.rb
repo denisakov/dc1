@@ -3,7 +3,6 @@ class CreateCountries < ActiveRecord::Migration
     create_table :countries do |t|
       t.string :name
       t.references :project
-
       t.timestamps
     end
   end

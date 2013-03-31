@@ -2,9 +2,9 @@ require 'spec_helper'
 
 describe "standards/show" do
   before(:each) do
-    @standard = assign(:standard, stub_model(standard,
+    @standard = assign(:standard, stub_model(Standard,
       :name => "Name",
-      :project_id => nil
+      :project_id => ""
     ))
   end
 

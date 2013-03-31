@@ -1,5 +1,5 @@
 Dc1::Application.routes.draw do
-  resources :standarts
+  resources :standards
 
 
   resources :countries

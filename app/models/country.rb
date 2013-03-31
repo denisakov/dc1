@@ -1,5 +1,4 @@
 class Country < ActiveRecord::Base
+ attr_accessible :name, :project_id
  belongs_to :project
- has_one :project  
- attr_accessible :name, :project
 end
