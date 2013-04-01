@@ -15,12 +15,11 @@ namespace :import do
   #Click "submit" button to see pages with all projects
   form.submit
   #Define maximum number of pages
-  @max = agent.page.links[63].text.to_i
-  sleep 2
+  max = agent.page.links[63].text.to_i
   i = 0
-    @max.times do
+    max.times do
+      sleep 0.5
       agent.post('http://cdm.unfccc.int/Projects/projsearch.html', "page" => i)
-      sleep 2
       a = 1
       page = agent.page.parser()
       while !page.css("#projectsTable td")[a].nil? do
@@ -39,7 +38,6 @@ namespace :import do
         a = a + 7
         puts "#{project.id}, #{title}, #{country_name}"
       end
-      sleep 2
       i += 1
     end
   end
