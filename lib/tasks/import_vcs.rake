@@ -1,32 +1,39 @@
-﻿namespace :import do
-	desc "imports data from VCS website"
-	task :vcs => :environment do
-	require 'rubygems'
-	require 'nokogiri'
-	require 'open-uri'
+namespace :import do
+  desc "imports data from external sources"
+  task :vcs => :environment do
+    require 'rubygems'
+    require 'open-uri'
+    require 'nokogiri'
+    require 'mechanize'
 
-html = open("https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?Tab=Projects&a=1", "r:ISO-8859-1:UTF-8")
-doc = Nokogiri::HTML(html.read)
-counter = 2
-hash_for_store = Hash.new
-row_part_of_css_tag = 'tr:nth-child('
-column_for_country_name_in_css_tag = ') td:nth-child(4)'
-column_for_project_name_in_css_tag = ') td:nth-child(2)'
-50.times {
-	row_counter_in_css_tag = counter.to_s
-	final_css_tag_for_country_name = row_part_of_css_tag + row_counter_in_css_tag + column_for_country_name_in_css_tag
-	final_css_tag_for_project_name = row_part_of_css_tag + row_counter_in_css_tag + column_for_project_name_in_css_tag
-	country_name = doc.css(final_css_tag_for_country_name).text
-	project_name = doc.css(final_css_tag_for_project_name).text
-	hash_for_store[project_name] = country_name
-	counter = counter + 1
-}
-hash_for_store.each { |key,value|
-	new_project_in_db = Project.new
-	new_project_in_db.title = key #.encode("UTF-16BE", :invalid => :replace, :replace => "?").encode("UTF-8").gsub("\u0092", "?")
-	new_project_in_db.countries.build(:name => value)
-	new_project_in_db.standards.build(:name => 'VCS')
-	new_project_in_db.save!
-}
+agent = Mechanize.new
+agent.idle_timeout = 0.9
+link = "https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?Tab=Projects&a=2&i="
+title = "dd"
+i = 1
+
+while (title != "") do
+	url = link + i.to_s
+	agent.get(url)
+	agent.page.encoding = 'ISO-8859-1'
+	agent.page.encoding = 'cp1252'
+	title_plus_country = agent.page.search("h1").text.encode!("utf-8", "utf-8", :invalid => :replace)
+	country = agent.page.search(".country").text.encode!("utf-8", "utf-8", :invalid => :replace)
+	title = title_plus_country.sub(", " + country, "")
+	
+	if title != ""
+	    #Create a new project record
+	    project = Project.create!(:title => title)
+	    #Write in the country names
+	    project.countries.build(:name => country)
+	    #Write the standard name
+	    project.standards.build(:name => 'VCS')
+	    #Save the database entries
+	    project.save!
+	end
+	puts i.to_s + ". " + title + ", " + country
+    i += 1 
+	sleep 1
+end
 end
 end

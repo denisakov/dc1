@@ -14,7 +14,7 @@ namespace :import do
   form = agent.page.forms[1]
   #Click "submit" button to see pages with all projects
   form.submit
-  #Define maximum number of pages
+  #Define maximum number of pages, by scanning
   max = agent.page.links[63].text.to_i
   i = 0
     max.times do
