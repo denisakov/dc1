@@ -26,3 +26,13 @@
 <br />
 
 <%= link_to 'New Project', new_project_path %>
+
+<div id="pdf">
+  <object width="600" height="500" type="application/pdf" data="http://cdm.unfccc.int/UserManagement/FileStorage/WD34VM5S8NZBRCTL7JIXP2E6UO9QK1?#page=7&zoom=70&scrollbar=0&toolbar=0&navpanes=0" id="pdf_content">
+    <p>Didn't work at all.<a href="my_pdf.pdf">click here to
+  download the PDF file</a></p>
+  </object>
+</div>
+
+<% content_for :title do %>Project<% end %>
+<% content_for :description do %>My Description<% end %>
