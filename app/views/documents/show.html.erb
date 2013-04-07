@@ -1,0 +1,25 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <b>Title:</b>
+  <%= @document.title %>
+</p>
+
+<p>
+  <b>Link:</b>
+  <%= @document.link %>
+</p>
+
+<p>
+  <b>Issue date:</b>
+  <%= @document.issue_date %>
+</p>
+
+<p>
+  <b>Project:</b>
+  <%= @document.project_id %>
+</p>
+
+
+<%= link_to 'Edit', edit_document_path(@document) %> |
+<%= link_to 'Back', documents_path %>

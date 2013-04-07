@@ -41,23 +41,33 @@ doc.encoding = "cp1252"
 id = doc.css("#project_id")
 #Find the title of the project
 title = doc.xpath("/html/body/h1").text.sub(id.text,"").sub('*',"").strip
-#id = doc.css("#project_id").text.delete "(ID: )"
 #Find the full location of the project
 location = doc.css(".unitTable tr:nth-child(3) td").text
 #Extract the country name from location
 country = location.reverse[0..location.reverse.index(',')-1].reverse.strip
 #Find the name of the standard
 standard = doc.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
+#proj_id = doc.css("#project_id").text.delete "(ID: )"
 #Create a new project record
-project = Project.create!(:title => title)
+project = Project.create!(:title => title, :link => proj_url)
 #Write in the country names
 project.countries.build(:name => country)
 #Write the standard name
-project.standards.build(:name => 'VCS')
+project.standards.build(:name => standard)
+#Grab the list of documents and loop throu it recording the titles and links
+doc.css(".doc").each do |d|
+doc_url = d['href'].strip.prepend("http://mer.markit.com/")
+#Find the document id
+doc_id = doc_url.reverse[0..14].reverse.prepend(" - ")
+doc_title = doc_id.prepend(d.children.text)
+#Write project url into the database
+project.documents.build(:title => doc_title, :link => doc_url)
+end
 #Save the database entries
 project.save!
 puts "#{proj_id} - #{title} - #{country} - #{standard}"
-sleep 1
+puts "#{project.documents.map{|d| d.title}}"
+sleep 0.5
 end
 page_no += 1
 end

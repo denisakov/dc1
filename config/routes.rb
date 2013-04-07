@@ -1,9 +1,14 @@
 Dc1::Application.routes.draw do
+
+  root to: 'static_pages#home'
+
+  match '/about',    to: 'static_pages#about'
+  
+  resources :documents
+
   resources :standards
 
-
   resources :countries
-
 
   resources :projects
 
@@ -57,7 +62,6 @@ Dc1::Application.routes.draw do
 
   # You can have the root of your site routed with "root"
   # just remember to delete public/index.html.
-   root :to => 'projects#index'
 
   # See how all your routes lay out with "rake routes"
 
