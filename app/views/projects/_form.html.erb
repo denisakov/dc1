@@ -13,9 +13,10 @@
 
   <div class="field">
     Project title<br />
-    <%= f.text_field :title %>
+    <%= f.text_area :title %>
   </div>
   <div class="actions">
-    <%= f.submit %>
+    <%= f.submit %> |
+    <%= link_to 'Cancel', project_path %>
   </div>
 <% end %>

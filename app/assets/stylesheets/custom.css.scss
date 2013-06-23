@@ -1,3 +1,8 @@
+@import "bootstrap";
+
+/* utility classes */
+.clickable {cursor: pointer;}
+
 /* universal */
 
 html {
@@ -16,8 +21,17 @@ section {
   overflow: auto;
 }
 
-textarea {
+textarea, {
   resize: vertical;
+  width: 95%;
+  height: 5em;
+  wrap: virtual;
+}
+
+input[type=text] {
+  width: 95%;
+  height: 3em;
+  wrap: virtual;
 }
 
 .center {
@@ -36,7 +50,7 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   font-size: 3em;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
   margin-bottom: 30px;
   text-align: center;
 }
@@ -85,10 +99,6 @@ footer {
 
 footer a {
   color: #555;
-}  
-
-footer a:hover { 
-  color: #222;
 }
 
 footer small {
@@ -104,6 +114,3 @@ footer ul li {
   float: left;
   margin-left: 10px;
 }
-@import "bootstrap";
-
-@import "bootstrap-responsive";

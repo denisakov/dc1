@@ -1,0 +1,37 @@
+<%= form_for(@webcrawl) do |f| %>
+  <% if @webcrawl.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@webcrawl.errors.count, "error") %> prohibited this webcrawl from being saved:</h2>
+
+      <ul>
+      <% @webcrawl.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :html %><br />
+    <%= f.text_area :html %>
+  </div>
+  <div class="field">
+    <%= f.label :retries %><br />
+    <%= f.number_field :retries %>
+  </div>
+  <div class="field">
+    <%= f.label :status_code %><br />
+    <%= f.number_field :status_code %>
+  </div>
+  <div class="field">
+    <%= f.label :url %><br />
+    <%= f.text_area :url %>
+  </div>
+  <div class="field">
+    <%= f.label :project_id %><br />
+    <%= f.number_field :project_id %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

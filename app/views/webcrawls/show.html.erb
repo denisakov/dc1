@@ -1,0 +1,30 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <b>Html:</b>
+  <%= @webcrawl.html %>
+</p>
+
+<p>
+  <b>Retries:</b>
+  <%= @webcrawl.retries %>
+</p>
+
+<p>
+  <b>Status code:</b>
+  <%= @webcrawl.status_code %>
+</p>
+
+<p>
+  <b>Url:</b>
+  <%= @webcrawl.url %>
+</p>
+
+<p>
+  <b>Project:</b>
+  <%= @webcrawl.project_id %>
+</p>
+
+
+<%= link_to 'Edit', edit_webcrawl_path(@webcrawl) %> |
+<%= link_to 'Back', webcrawls_path %>

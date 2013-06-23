@@ -2,6 +2,7 @@ class CreateDocuments < ActiveRecord::Migration
   def change
     create_table :documents do |t|
       t.string :title
+      t.integer :version
       t.text :link
       t.datetime :issue_date
       t.integer :project_id

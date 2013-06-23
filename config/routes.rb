@@ -1,5 +1,8 @@
 Dc1::Application.routes.draw do
 
+  resources :webcrawls
+
+
   root to: 'static_pages#home'
 
   match '/about',    to: 'static_pages#about'

@@ -1,8 +1,35 @@
 <p id="notice"><%= notice %></p>
+<p>
+	<b>Title:</b>
+	<%= @project.title %>
+</p>
+<p>
+	<b>Reference number:</b>
+	<%= @project.refno %>
+</p>
+<p>
+	<b>Standard:</b>
+	<%= Standard.find_by_project_id(@project.id).name %>
+</p>
+<p>
+	<b>Host country:</b>
+	<%= Country.find_by_project_id(@project.id).name %>
+</p>
+<p>
+	<b>Fee:</b>
+	<% if !@project.fee.blank? %>
+		<%= @project.fee %>
+	<% else %>
+		<%= "Unknown" %>
+	<% end %>
+</p>
 
 <p>
-  <b>Title:</b>
-  <%= @project.title %>
+	<b>Documents:</b>
+	<% @project.documents.each do |d| %>
+		<ul><%= d.title %> (<%= d.issue_date_string %>)
+		</ul>
+	<% end %>
 </p>
 
 

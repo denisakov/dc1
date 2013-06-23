@@ -1,0 +1,1 @@
+Time::DATE_FORMATS[:doc_date] = "%F"

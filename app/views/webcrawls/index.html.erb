@@ -1,0 +1,31 @@
+<h1>Listing webcrawls</h1>
+
+<table>
+  <tr>
+    <th>Html</th>
+    <th>Retries</th>
+    <th>Status code</th>
+    <th>Url</th>
+    <th>Project</th>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @webcrawls.each do |webcrawl| %>
+  <tr>
+    <td><%= webcrawl.html %></td>
+    <td><%= webcrawl.retries %></td>
+    <td><%= webcrawl.status_code %></td>
+    <td><%= webcrawl.url %></td>
+    <td><%= webcrawl.project_id %></td>
+    <td><%= link_to 'Show', webcrawl %></td>
+    <td><%= link_to 'Edit', edit_webcrawl_path(webcrawl) %></td>
+    <td><%= link_to 'Destroy', webcrawl, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Webcrawl', new_webcrawl_path %>

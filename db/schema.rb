@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130406190658) do
+ActiveRecord::Schema.define(:version => 20130518154131) do
 
   create_table "countries", :force => true do |t|
     t.string   "name"
@@ -22,6 +22,7 @@ ActiveRecord::Schema.define(:version => 20130406190658) do
 
   create_table "documents", :force => true do |t|
     t.string   "title"
+    t.integer  "version"
     t.text     "link"
     t.datetime "issue_date"
     t.integer  "project_id"
@@ -32,6 +33,8 @@ ActiveRecord::Schema.define(:version => 20130406190658) do
   create_table "projects", :force => true do |t|
     t.string   "title"
     t.text     "link"
+    t.text     "refno"
+    t.integer  "fee"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
@@ -44,5 +47,19 @@ ActiveRecord::Schema.define(:version => 20130406190658) do
   end
 
   add_index "standards", ["project_id"], :name => "index_standards_on_project_id"
+
+  create_table "webcrawls", :force => true do |t|
+    t.text     "html"
+    t.integer  "retries"
+    t.integer  "status_code"
+    t.text     "source"
+    t.text     "url"
+    t.integer  "last_page"
+    t.integer  "project_id"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
+  end
+
+  add_index "webcrawls", ["project_id"], :name => "index_webcrawls_on_project_id"
 
 end

@@ -8,29 +8,30 @@ namespace :import do
 
 agent = Mechanize.new
 agent.idle_timeout = 0.9
-link = "https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?Tab=Projects&a=2&i="
-title = "dd"
-i = 1
+agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp', "X999field" => "Project ID", "X999sort" => "Desc", "X999tablenumber" => "2")
+max = page.search("html body div#wrapper.project-list div#content div#content-inner div#main.clearfix div#projectList.qtable form#xxxx2 table tr[2] td[1]")[0].text.to_s
 
-while (title != "") do
-	url = link + i.to_s
-	agent.get(url)
+link = "https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?Tab=Projects&a=2&i="
+i = 0
+
+max.times do
+	vcs_url = link + i.to_s
+	
+	agent.get(vcs_url)
 	agent.page.encoding = 'ISO-8859-1'
 	agent.page.encoding = 'cp1252'
 	title_plus_country = agent.page.search("h1").text.encode!("utf-8", "utf-8", :invalid => :replace)
 	country = agent.page.search(".country").text.encode!("utf-8", "utf-8", :invalid => :replace)
 	title = title_plus_country.sub(", " + country, "")
 	
-	if title != ""
-	    #Create a new project record
-	    project = Project.create!(:title => title)
-	    #Write in the country names
-	    project.countries.build(:name => country)
-	    #Write the standard name
-	    project.standards.build(:name => 'VCS')
-	    #Save the database entries
-	    project.save!
-	end
+    #Create a new project record
+    project = Project.create!(:title => title, :refno => "i")
+    #Write in the country names
+    project.countries.build(:name => country)
+    #Write the standard name
+    project.standards.build(:name => 'VCS')
+    #Save the database entries
+    project.save!
 	puts i.to_s + ". " + title + ", " + country
     i += 1 
 	sleep 1
