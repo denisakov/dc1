@@ -281,8 +281,8 @@ namespace :crawl do
 	end
 	#cdm_page_finder
 	#cdm_link_collector
-	#vcs_page_finder
-	#vcs_link_collector
+	vcs_page_finder
+	vcs_link_collector
 	markit_page_finder
 	markit_link_collector
 	end

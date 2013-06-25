@@ -441,8 +441,8 @@ end
 
 #cdm_new_page_crawler
 #cdm_update_page_crawler
-#vcs_update_page_crawler
-#vcs_new_page_crawler
+vcs_update_page_crawler
+vcs_new_page_crawler
 markit_update_page_crawler
 markit_new_page_crawler
 

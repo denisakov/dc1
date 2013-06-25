@@ -19,6 +19,7 @@ test:
 production:
   adapter: postgresql
   encoding: unicode
+  host: localhost
   database: db/carbonbase_production
   pool: 5
   username: denis
