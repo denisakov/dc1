@@ -164,12 +164,12 @@ namespace :crawl do
 		link = "https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?Tab=Projects&a=2&i="
 		array_to_scan.each do |i|
 			vcs_proj_url = link + i.to_s
-			if Webcrawl.where("url is ?", vcs_proj_url).first.blank? then
+			if Webcrawl.where('url = ?', vcs_proj_url).first.blank? then
 				puts "That's a new one."
 				crawl = Webcrawl.create!(:url => vcs_proj_url, :source => "vcs", :last_page => i, :status_code => 1, :retries => @r)
 				puts vcs_proj_url
 			else
-				crawl = Webcrawl.where("url is ?", vcs_proj_url).first
+				crawl = Webcrawl.where('url = ?', vcs_proj_url).first
 				crawl.status_code = 2
 				crawl.touch
 				crawl.save
