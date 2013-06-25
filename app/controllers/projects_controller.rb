@@ -1,8 +1,9 @@
 class ProjectsController < ApplicationController
   # GET /projects
   # GET /projects.json
+
   def index
-    @projects = Project.find(:all, :include => [:countries, :standards])
+    @projects = Project.find(:all,:include => [:countries, :standards]).paginate(:page => params[:page], :per_page => 30)
 
     respond_to do |format|
       format.html # index.html.erb

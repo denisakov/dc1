@@ -2,7 +2,7 @@ class DocumentsController < ApplicationController
   # GET /documents
   # GET /documents.json
   def index
-    @documents = Document.all
+    @documents = Document.order("project_id").page(params[:page]).per_page(30)
 
     respond_to do |format|
       format.html # index.html.erb
