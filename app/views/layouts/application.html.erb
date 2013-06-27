@@ -12,14 +12,10 @@
    <body class="<%= controller_name %> <%= action_name %>">
     <%= render 'layouts/header' %>
     <div id="main" role="main">
-      <div class="container">
+      <div class="container-fluid">
         <div class="content">
-          <div class="row">
-            <div class="span12">
-              <%= render 'layouts/messages' %>
-              <%= yield %>
-            </div>
-          </div>
+          <%= render 'layouts/messages' %>
+          <%= yield %>
         </div>
         <%= render 'layouts/footer' %>
       </div> <!--! end of .container -->

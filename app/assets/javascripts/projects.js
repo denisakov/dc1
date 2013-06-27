@@ -1,15 +1,15 @@
 $(document).ready(function() {
-	var $toggle_control = $('.toggle-control');
+	var $togle_control = $('.togle-control');
 
-	$toggle_control.addClass('clickable');
-	$('.toggle-content').hide();
+	$togle_control.addClass('clickable');
+	$('.togle-content').hide();
 
-	$toggle_control.bind('click', function() {
+	$togle_control.bind('click', function() {
 		var $control = $(this);
-		var $parent = $control.parents('.toggle-unit');
+		var $parent = $control.parents('.togle-unit');
 
 		$parent.toggleClass('expanded');
-		$parent.find('.toggle-content').slideToggle();
+		$parent.find('.togle-content').slideToggle();
 
 		// if control has HTML5 data attributes, use to update text
 		if ($parent.hasClass('expanded')) {

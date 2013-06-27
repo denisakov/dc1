@@ -1,8 +1,9 @@
 class DocumentsController < ApplicationController
+  helper_method :sort_column, :sort_direction
   # GET /documents
   # GET /documents.json
   def index
-    @documents = Document.order("project_id").page(params[:page]).per_page(30)
+    @documents = Document.order(sort_column + " " + sort_direction).page(params[:page]).per_page(30)
 
     respond_to do |format|
       format.html # index.html.erb
@@ -80,4 +81,16 @@ class DocumentsController < ApplicationController
       format.json { head :no_content }
     end
   end
+
+private
+
+  def sort_column
+    Document.column_names.include?(params[:sort]) ? params[:sort] : "project_id"
+  end
+
+  def sort_direction
+    %w[asc desc].include?(params[:direction]) ? params[:direction] : "asc"
+  end
+
+
 end

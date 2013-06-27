@@ -1,36 +1,32 @@
-<div>
-	<div style="width: 65%; float: left;">
+<div class="row-fluid">
+	<div class="span9">
 		<h4><%= @project.title %></h4>
 	</div>
-	<div style="margin-left: 70%;">
-		<div>
-			<%= render 'form' %>
-		</div>
+	<div class="span3">
+		<%= render 'form' %>
 	</div>
 </div>
 <% @project.documents.each do |d| %>
-<div class="toggle-unit">
-	<div style="width: 60%; float: left;" ><%= d.title %> (<%= d.issue_date_string %>)
-		<u class="toggle-control" data-text="(Expand)" data-expanded-text="(Collapse)">
-		(Expand)
-		</u>
-		
-	</div>
-	<div class="toggle-content">
-		<div id="pdf" style="width: 65%; float: left;">
-			<object width="100%" height="600" type="application/pdf" data="<%= d.link+'#zoom=85&scrollbar=0&toolbar=0&navpanes=0' %>" id="pdf_content">
-			<p>Can't seem to display the document. Try <a href="<%= d.link %>">downloading</a> it.</p>
-			<embed type="application/pdf" src="<%= d.link %>" width="100%" height="600" />
+<div class="togle-unit">
+	<div class="row-fluid">
+		<div class="span9">
+			<%= d.title %> (<%= d.issue_date_string %>)
+			<u class="togle-control" data-text="(Expand)" data-expanded-text="(Collapse)">
+			(Expand)
+			</u>
+		</div>
+		<div id="pdf" class="togle-content">
+			<object class="span9" height="600" type="application/pdf" data="<%= d.link+'#zoom=85&scrollbar=0&toolbar=0&navpanes=0' %>" id="pdf_content">
+			<p class="lead">Can't display the document in your browser. Try <a href="<%= d.link %>">downloading</a> it.</p>
+			<embed type="application/pdf" src="<%= d.link %>" class="span9" height="600" />
 			</object>
-		</div>
-		<div style="margin-left: 70%;">
-			<div style="margin-bottom: 420px">
-				<% @document = d %>
-				<%= render 'documents/form' %>
+			<div class="span3">
+				<div style="margin-bottom: 420px">
+					<% @document = d %>
+					<%= render 'documents/form' %>
+				</div>
 			</div>
-		</div>
-	</div><!-- /.toggle-content -->
-</div><!-- /.toggle.unit -->
-<br />
-<br />
+		</div><!-- /.togle-content -->
+	</div>
+</div><!-- /.togle.unit -->
 <% end %>
