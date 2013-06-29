@@ -379,58 +379,59 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 				title = mark_page_html.xpath("/html/body/h1").text.sub(id.text,"").sub('*',"").strip
 				#Check if the title and ID are missing
 				if !title.empty? and !id.empty? then
-				#Find the full location of the project
-				location = mark_page_html.css(".unitTable tr:nth-child(3) td").text
-				if !location.index(',').nil? then
-					#Extract the country name from location
-					country = location.reverse[0..location.reverse.index(',')-1].reverse.strip
-				else
-					country = "Unknown"
-				end
-				#Find the name of the standard
-				standard = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
-				#Identify which standard it is to see which short name to use
-				short_standard = standard
-				if standard == "Gold Standard"
-					short_standard = "GS"
-				end
-				if standard == "Social Carbon"
-					short_standard = "SC"
-				end
-				if standard == "Verified Carbon Standard"
-					short_standard = "VCS"
-				end
-				#Find the project reference number
-				proj_id = id.text.delete "(ID: )"
-					#puts proj_id
-				#Create a new project record
-				project = Project.create!(:title => title, :refno => proj_id)
-				#Write in the country names
-				project.countries.build(:name => country)
-				#Write the standard name
-				project.standards.build(:name => standard, :short_name => short_standard)
-				#Grab the list of mark_page_htmluments and loop throu it recording the titles and links
-				mark_page_html.css(".doc").each do |d|
-					doc_url = d['href'].strip.prepend("http://mer.markit.com")
-					#Find the document id
-					#doc_id = doc_url.reverse[0..14].reverse.prepend(" - ")
-					#Find the title of the document
-					doc_title = d.children.text
-					#Ammend the title of the document with ID at the end (for control purposes)
-					#doc_title = doc_id.prepend(d.children.text)
-					#Write project url into the database
-					project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url)
-				end
-				#Save the database entries
-				project.save!
-				
-				mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
-				crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
-				crawl.touch
-				crawl.save
-				puts "#{proj_id} - #{title} - #{country}"
-				project.documents.each do |d|
-					puts "#{d.id} #{d.title}"
+					#Find the full location of the project
+					location = mark_page_html.css(".unitTable tr:nth-child(3) td").text
+					if !location.index(',').nil? then
+						#Extract the country name from location
+						country = location.reverse[0..location.reverse.index(',')-1].reverse.strip
+					else
+						country = "Unknown"
+					end
+					#Find the name of the standard
+					standard = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
+					#Identify which standard it is to see which short name to use
+					short_standard = standard
+					if standard == "Gold Standard"
+						short_standard = "GS"
+					end
+					if standard == "Social Carbon"
+						short_standard = "SC"
+					end
+					if standard == "Verified Carbon Standard"
+						short_standard = "VCS"
+					end
+					#Find the project reference number
+					proj_id = id.text.delete "(ID: )"
+						#puts proj_id
+					#Create a new project record
+					project = Project.create!(:title => title, :refno => proj_id)
+					#Write in the country names
+					project.countries.build(:name => country)
+					#Write the standard name
+					project.standards.build(:name => standard, :short_name => short_standard)
+					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links
+					mark_page_html.css(".doc").each do |d|
+						doc_url = d['href'].strip.prepend("http://mer.markit.com")
+						#Find the document id
+						#doc_id = doc_url.reverse[0..14].reverse.prepend(" - ")
+						#Find the title of the document
+						doc_title = d.children.text
+						#Ammend the title of the document with ID at the end (for control purposes)
+						#doc_title = doc_id.prepend(d.children.text)
+						#Write project url into the database
+						project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url)
+					end
+					#Save the database entries
+					project.save!
+					
+					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
+					crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
+					crawl.touch
+					crawl.save
+					puts "#{proj_id} - #{title} - #{country}"
+					project.documents.each do |d|
+						puts "#{d.id} #{d.title}"
+					end
 				end
 			}
 		rescue Timeout::Error
