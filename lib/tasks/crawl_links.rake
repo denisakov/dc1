@@ -63,12 +63,12 @@ namespace :crawl do
 				page.css("#projectsTable td:nth-child(2) a").each do |p|
 			        #Define individual link
 					gsp_page_url = p['href'].gsub(" ", "%20") + "?cp=1"
-					if Webcrawl.where("url is ?", gsp_page_url).first.blank? then
+					if Webcrawl.where('url = ?', gsp_page_url).first.blank? then
 						puts "That's a new one."
 						crawl = Webcrawl.create!(:url => gsp_page_url, :source => "cdm_gsp", :last_page => i, :status_code => 1, :retries => @r)
 						puts gsp_page_url
 					else
-						crawl = Webcrawl.where("url is ?", gsp_page_url).first
+						crawl = Webcrawl.where('url = ?', gsp_page_url).first
 						crawl.status_code = 2
 						crawl.touch
 						crawl.save
@@ -77,12 +77,12 @@ namespace :crawl do
 					end
 					
 					cp2_page_url = p['href'].gsub(" ", "%20") + "?cp=2"
-					if Webcrawl.where("url is ?", cp2_page_url).first.blank? then
+					if Webcrawl.where('url = ?', cp2_page_url).first.blank? then
 						puts "That's a new one."
 						crawl = Webcrawl.create!(:url => cp2_page_url, :source => "cdm_cp2", :last_page => i, :status_code => 1, :retries => @r)
 						puts cp2_page_url, i
 					else
-						crawl = Webcrawl.where("url is ?", cp2_page_url).first
+						crawl = Webcrawl.where('url = ?', cp2_page_url).first
 						crawl.status_code = 2
 						crawl.touch
 						crawl.save
@@ -91,12 +91,12 @@ namespace :crawl do
 					end
 
 					cp3_page_url = p['href'].gsub(" ", "%20") + "?cp=3"
-					if Webcrawl.where("url is ?", cp3_page_url).first.blank? then
+					if Webcrawl.where('url = ?', cp3_page_url).first.blank? then
 						puts "That's a new one."
 						crawl = Webcrawl.create!(:url => cp3_page_url, :source => "cdm_cp3", :last_page => i, :status_code => 1, :retries => @r)
 						puts cp3_page_url, i
 					else
-						crawl = Webcrawl.where("url is ?", cp3_page_url).first
+						crawl = Webcrawl.where('url = ?', cp3_page_url).first
 						crawl.status_code = 2
 						crawl.touch
 						crawl.save
@@ -279,11 +279,11 @@ namespace :crawl do
 				puts "No timeouts it seems, all done then!"
 			end
 	end
-	#cdm_page_finder
-	#cdm_link_collector
 	vcs_page_finder
 	vcs_link_collector
 	markit_page_finder
 	markit_link_collector
+	#cdm_page_finder
+	#cdm_link_collector
 	end
 end

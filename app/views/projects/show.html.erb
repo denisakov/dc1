@@ -27,11 +27,11 @@
 <p>
 	<b>Documents:</b>
 	<% @project.documents.each do |d| %>
-		<ul><%= d.title %> (<%= d.issue_date_string %>)
+		<ul><%= link_to d.title, d.link %> (<%= d.issue_date_string %>)
 		</ul>
 	<% end %>
 </p>
 
 
-<%= link_to 'Edit', edit_project_path(@project) %> |
-<%= link_to 'Back', projects_path %>
+<%= link_to 'Edit', edit_project_path(@project), :class => 'btn btn-mini' %> |
+<%= link_to 'Back', projects_path, :class => 'btn btn-mini' %>
