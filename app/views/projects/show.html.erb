@@ -9,11 +9,19 @@
 </p>
 <p>
 	<b>Standard:</b>
-	<%= Standard.find_by_project_id(@project.id).name %>
+	<%= @project.standards.first.name %>
+</p>
+<p>
+	<b>Scale:</b>
+	<% if !@project.scale.blank? %>
+		<%= @project.scale %>
+	<% else %>
+		<%= "Unknown" %>
+	<% end %>
 </p>
 <p>
 	<b>Host country:</b>
-	<%= Country.find_by_project_id(@project.id).name %>
+	<%= @project.countries(:role => "Host").first.name %>
 </p>
 <p>
 	<b>Fee:</b>

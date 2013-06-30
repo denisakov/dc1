@@ -235,7 +235,13 @@ namespace :crawl do
 						puts mark_proj_url
 					else
 						crawl = Webcrawl.where('url = ?', mark_proj_url).first
-						crawl.status_code = 2
+						if Time.new - crawl.created_at > 600 then
+							crawl.status_code = 2
+							puts "I've heard that one before."
+						else
+							crawl.status_code = 1
+							puts "That's a new one."
+						end
 						crawl.touch
 						crawl.save
 						puts "I've heard that one before."
@@ -281,9 +287,11 @@ namespace :crawl do
 	end
 	vcs_page_finder
 	vcs_link_collector
+	
+	cdm_page_finder
+	cdm_link_collector
+
 	markit_page_finder
 	markit_link_collector
-	#cdm_page_finder
-	#cdm_link_collector
 	end
 end

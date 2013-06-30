@@ -8,6 +8,7 @@ namespace :crawl do
     require 'timeout'
 
     @timed_out = Array.new
+    cdm_inv_countries = Array.new
     @agent = Mechanize.new
 	@agent.idle_timeout = 0.9
 
@@ -88,17 +89,17 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				#Retrive the project ID and the Title
 				cdm_proj_id_title = @gsp_page_html.css("div.mH div").text.strip.gsub( "\u0096", "-" )
 				#Retrieve the project ID
-				cdm_proj_id = cdm_proj_id_title[12..18].strip.prepend("CDM")
+				cdm_proj_id = cdm_proj_id_title[12..18].strip
 				#Retreave the project title
 				cdm_proj_title = cdm_proj_id_title[cdm_proj_id_title.index(":")+1..cdm_proj_id_title.length].strip
 				#Retreave the country name
-				cdm_host_country = gsp_page.css("tr:nth-child(2) strong").text
+				cdm_host_country = gsp_page.css("tr:nth-child(2) strong").text			
 				#Find if the scale is the number 5 or number 6
 				if gsp_page.css("tr:nth-child(5) th").inner_text.strip == "Activity Scale"
 					#Grab the project scale
-					@cdm_proj_scale = gsp_page.css("tr:nth-child(5) td").text.capitalize
+					@cdm_proj_scale = gsp_page.css("tr:nth-child(5) td").text.strip.capitalize!
 				else
-					@cdm_proj_scale = gsp_page.css("tr:nth-child(6) td").text.capitalize
+					@cdm_proj_scale = gsp_page.css("tr:nth-child(6) td").text.strip.capitalize!
 				end
 				#Retreave the fee amount
 				cdm_fee = gsp_page.css("tr:nth-child(8) span").text
@@ -107,8 +108,26 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				end
 				#Create a new project record
 				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => @cdm_proj_scale, :fee => cdm_fee)
-				#Write in the country names
-				project.countries.build(:name => cdm_host_country)
+				#Check if country name exists
+				country = Country.where('name = ?', cdm_host_country).first
+				#Write in the new country names or return the one found above
+				country ||= Country.create(:name => cdm_host_country)
+				#Create a role for the country in the project
+				project.roles.build(:country_id => country.id, :role => "Host")
+				#COllect the list of all investor countries and loop through that
+				gsp_page.css("tr:nth-child(3) strong").to_a.each do |ic|
+					ic = ic.text
+					if !ic.index(/[,.]/).nil? then
+						ic = ic[0..ic.index(/[,.]/)-1]
+					end
+					#Check if country name exists
+					country = Country.where('name = ?', ic).first
+					#Write in the new country names or return the one found above
+					country ||= Country.create(:name => ic)
+					#Create a role for the country in the project
+					project.roles.build(:country_id => country.id, :role => "Investor")
+					project.save!
+				end
 				#Write the standard name
 				project.standards.build(:name => 'Clean Development Mechanism', :short_name => 'CDM')
 				#Save the database entries
@@ -244,8 +263,12 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 				if !vcs_proj_title.empty? and !vcs_host_country.empty? and !vcs_proj_title.downcase.include? "error" then
 					#Create a new project record
 					project = Project.create!(:title => vcs_proj_title, :refno => vcs_proj_id)
-					#Write in the country names
-					project.countries.build(:name => vcs_host_country)
+					#Check if country name exists
+					country = Country.where('name = ?', vcs_host_country).first
+					#Write in the new country names or return the one found above
+					country ||= Country.create(:name => vcs_host_country)
+					#Create a role for the country in the project
+					project.roles.build(:country_id => country.id, :role => "Host")
 					#Write the standard name
 					project.standards.build(:name => 'Verified Carbon Standard', :short_name => 'VCS')
 					#Save the database entries
@@ -383,32 +406,36 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					location = mark_page_html.css(".unitTable tr:nth-child(3) td").text
 					if !location.index(',').nil? then
 						#Extract the country name from location
-						country = location.reverse[0..location.reverse.index(',')-1].reverse.strip
+						country_name = location.reverse[0..location.reverse.index(',')-1].reverse.strip
 					else
-						country = "Unknown"
+						country_name = "Unknown"
 					end
 					#Find the name of the standard
 					standard = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
 					#Identify which standard it is to see which short name to use
-					short_standard = standard
+					@short_standard = standard
 					if standard == "Gold Standard"
-						short_standard = "GS"
+						@short_standard = "GS"
 					end
 					if standard == "Social Carbon"
-						short_standard = "SC"
+						@short_standard = "SC"
 					end
 					if standard == "Verified Carbon Standard"
-						short_standard = "VCS"
+						@short_standard = "VCS"
 					end
 					#Find the project reference number
 					proj_id = id.text.delete "(ID: )"
 						#puts proj_id
 					#Create a new project record
 					project = Project.create!(:title => title, :refno => proj_id)
-					#Write in the country names
-					project.countries.build(:name => country)
+					#Check if country name exists
+					country = Country.where('name = ?', country_name).first
+					#Write in the new country names or return the one found above
+					country ||= Country.create(:name => country_name)
+					#Create a role for the country in the project
+					project.roles.build(:country_id => country.id, :role => "Host")
 					#Write the standard name
-					project.standards.build(:name => standard, :short_name => short_standard)
+					project.standards.build(:name => standard, :short_name => @short_standard)
 					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links
 					mark_page_html.css(".doc").each do |d|
 						doc_url = d['href'].strip.prepend("http://mer.markit.com")
@@ -428,7 +455,7 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
 					crawl.touch
 					crawl.save
-					puts "#{proj_id} - #{title} - #{country}"
+					puts "#{@short_standard}#{proj_id} - #{title} - #{country}"
 					project.documents.each do |d|
 						puts "#{d.id} #{d.title}"
 					end
@@ -466,12 +493,12 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 	end
 end
 
-#vcs_update_page_crawler
-#vcs_new_page_crawler
+vcs_update_page_crawler
+vcs_new_page_crawler
 markit_update_page_crawler
 markit_new_page_crawler
-#cdm_new_page_crawler
-#cdm_update_page_crawler
+cdm_new_page_crawler
+cdm_update_page_crawler
 
 if !Webcrawl.where(:status_code => 4).empty? then
 	puts "These pages have timedout too many times. Check them manually, please!"

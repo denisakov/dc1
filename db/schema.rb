@@ -11,11 +11,10 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130518154131) do
+ActiveRecord::Schema.define(:version => 20130630151317) do
 
   create_table "countries", :force => true do |t|
     t.string   "name"
-    t.integer  "project_id"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
@@ -24,11 +23,14 @@ ActiveRecord::Schema.define(:version => 20130518154131) do
     t.string   "title"
     t.integer  "version"
     t.text     "link"
+    t.text     "process_type"
     t.datetime "issue_date"
     t.integer  "project_id"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
+    t.datetime "created_at",   :null => false
+    t.datetime "updated_at",   :null => false
   end
+
+  add_index "documents", ["project_id", "process_type"], :name => "index_documents_on_project_id_and_process_type"
 
   create_table "projects", :force => true do |t|
     t.string   "title"
@@ -38,6 +40,16 @@ ActiveRecord::Schema.define(:version => 20130518154131) do
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
+
+  create_table "roles", :force => true do |t|
+    t.string   "role"
+    t.integer  "project_id"
+    t.integer  "country_id"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
+  end
+
+  add_index "roles", ["project_id", "country_id"], :name => "index_roles_on_project_id_and_country_id"
 
   create_table "standards", :force => true do |t|
     t.string   "name"
