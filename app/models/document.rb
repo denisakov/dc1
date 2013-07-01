@@ -1,5 +1,5 @@
 class Document < ActiveRecord::Base
-  attr_accessible :issue_date, :link, :version, :project_id, :title, :issue_date_string
+  attr_accessible :issue_date, :link, :version, :project_id, :title, :issue_date_string, :process_type
   belongs_to :project
 
   require 'chronic'

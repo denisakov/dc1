@@ -8,7 +8,6 @@ namespace :crawl do
     require 'timeout'
 
     @timed_out = Array.new
-    cdm_inv_countries = Array.new
     @agent = Mechanize.new
 	@agent.idle_timeout = 0.9
 
@@ -273,6 +272,47 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 					project.standards.build(:name => 'Verified Carbon Standard', :short_name => 'VCS')
 					#Save the database entries
 					project.save!
+					if !vcs_page_html.search("td:nth-child(1) a").empty? then
+						#Set the process type
+						process_type = "Registration"
+						#Grab all registration documents
+						vcs_page_html.search("td:nth-child(1) a").each do |d|
+							#Find the document's URL
+							doc_url = d['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
+							#Find the title of the document
+							doc_title = d.inner_text
+							#Grab the Upload date (FOR FUTURE USE)
+							#doc_upload_time = d.parent.parent.last_element_child.inner_text
+							#Write project url into the database
+							project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url, :process_type => process_type)
+							#Save the database entries
+							project.save!
+						end
+					end
+					
+					if !vcs_page_html.search("td:nth-child(2) a").empty? then
+						#Grab all registration documents
+						vcs_page_html.search("td:nth-child(2) a").each do |d|
+							#Find the document's URL
+							doc_url = d.parent.last_element_child['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
+							#Find the title of the document
+							doc_title = d.parent.parent.first_element_child.text
+							#Grab the Upload date (FOR FUTURE USE)
+							#doc_upload_time = d.parent.parent.last_element_child.inner_text
+							#Write project url into the database
+							if d.parent.parent.first_element_child.parent.parent.parent.first_element_child.text == "Issuance Documents"
+								process_type = "Issuance"
+							else
+								process_type = "Unknown"
+							end
+							project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url, :process_type => process_type)
+							#Save the database entries
+							project.save!
+						end
+					end
+					#Save the database entries
+					project.save!
+
 					vcs_page_html = vcs_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
 					crawl.update_attributes(:html => vcs_page_html, :project_id => project.id, :status_code => 2)
 					crawl.touch
@@ -437,6 +477,8 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					#Write the standard name
 					project.standards.build(:name => standard, :short_name => @short_standard)
 					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links
+					#Save the database entries
+					project.save!
 					mark_page_html.css(".doc").each do |d|
 						doc_url = d['href'].strip.prepend("http://mer.markit.com")
 						#Find the document id
@@ -445,11 +487,18 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						doc_title = d.children.text
 						#Ammend the title of the document with ID at the end (for control purposes)
 						#doc_title = doc_id.prepend(d.children.text)
+						process_type = "Unknown"
+						if !(doc_title =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol| oda /).nil? then
+							process_type = "Registration"
+						end
+						if !(doc_title =~ /verif|monito|issuan/).nil? then
+							process_type = "Issuance"
+						end
 						#Write project url into the database
-						project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url)
+						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => "01.01.2000", :link => doc_url)
+						#Save the database entries
+						project.save!
 					end
-					#Save the database entries
-					project.save!
 					
 					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
 					crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
@@ -493,12 +542,12 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 	end
 end
 
-vcs_update_page_crawler
-vcs_new_page_crawler
+#vcs_update_page_crawler
+#vcs_new_page_crawler
 markit_update_page_crawler
 markit_new_page_crawler
-cdm_new_page_crawler
-cdm_update_page_crawler
+#cdm_new_page_crawler
+#cdm_update_page_crawler
 
 if !Webcrawl.where(:status_code => 4).empty? then
 	puts "These pages have timedout too many times. Check them manually, please!"

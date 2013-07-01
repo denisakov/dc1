@@ -7,6 +7,7 @@
   <thead>
     <tr>
       <th><%= sortable "title" %></th>
+      <th><%= sortable "process_type", "Process" %></th>
       <th><%= sortable "issue_date", "Issue date" %></th>
       <th>Standard</th>
       <th><%= sortable "project_id", "Project ID" %></th>
@@ -16,9 +17,10 @@
 <tbody>
 <% @documents.each do |document| %>
   <tr>
-    <td><%= document.title %></td>
-    <td><%= document.issue_date %></td>
-    <td><%=  %></td>
+    <td><%= link_to document.title, document.link %></td>
+    <td><%= document.process_type %></td>
+    <td><%= document.issue_date_string %></td>
+    <td><%= Standard.find_by_project_id(document.project_id).short_name %></td>
     <td><%= document.project_id %></td>
     <td><%= link_to 'Show', document, :class => 'btn btn-mini' %></td>
   </tr>
