@@ -37,6 +37,11 @@ section {
   overflow: auto;
 }
 
+table a:hover {
+  background-color: inherit;
+  color: #003388;
+}
+
 textarea, {
   resize: vertical;
   width: 95%;

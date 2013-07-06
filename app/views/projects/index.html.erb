@@ -9,7 +9,8 @@
       <th>Ref</th>
       <th><%= sortable "title" %></th>
       <th># of docs</th>
-      <th><%= sortable "name", "Host country" %></th>
+      <th><%= sortable "name", "Host Party" %></th>
+      <th><%= sortable "name", "Annex-I Party" %></th>
       <th></th>
     </tr>
   </thead>
@@ -20,7 +21,20 @@
     <td valign="top"><%= link_to p.refno, p.webcrawls[0].url %></td>
     <td valign="top"><%= link_to p.title, project_path(p) %></td>
     <td align="center"><%= p.documents.count %></td>
-    <td><%= p.countries(:role => "Host").first.name %></td>
+    <% if p.roles.where(:role => "Host").first then %>
+      <td><%= p.countries.where(:id => p.roles.where(:role => "Host").first.country_id).first.name %></td>
+    <% end %>
+    <% if p.roles.where(:role => "Investor") then %>
+      <td>
+        <% p.roles.where(:role => "Investor").each do |x| %>
+          <% p.countries.where(:id => x.country_id).each do |y| %>
+            <%= y.name %> <br />
+          <% end %>
+        <% end %>
+      </td>
+    <% else %>
+      <%= puts "" %>
+    <% end %>
     <td><%= link_to 'Edit', edit_project_path(p), :class => 'btn btn-mini' %></td>
   </tr>
 <% end %>

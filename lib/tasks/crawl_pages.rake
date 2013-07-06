@@ -84,65 +84,126 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 			status = Timeout::timeout(20) {
 				page_html = open(gsp_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
 				gsp_page = Nokogiri::HTML(page_html)
-				@gsp_page_html = gsp_page.css("html body div#container div#content div#cols div#main")
+				gsp_page_html = gsp_page.css("html body div#container div#content div#cols div#main")
 				#Retrive the project ID and the Title
-				cdm_proj_id_title = @gsp_page_html.css("div.mH div").text.strip.gsub( "\u0096", "-" )
+				cdm_proj_id_title = gsp_page_html.css("div.mH div").text.strip.gsub( "\u0096", "-" )
 				#Retrieve the project ID
 				cdm_proj_id = cdm_proj_id_title[12..18].strip
 				#Retreave the project title
 				cdm_proj_title = cdm_proj_id_title[cdm_proj_id_title.index(":")+1..cdm_proj_id_title.length].strip
-				#Retreave the country name
-				cdm_host_country = gsp_page.css("tr:nth-child(2) strong").text			
+
+				#cdm_host_country = gsp_page_html.css("tr:nth-child(2) strong").text
 				#Find if the scale is the number 5 or number 6
-				if gsp_page.css("tr:nth-child(5) th").inner_text.strip == "Activity Scale"
+				if gsp_page_html.css("tr:nth-child(5) th").inner_text.strip == "Activity Scale"
 					#Grab the project scale
-					@cdm_proj_scale = gsp_page.css("tr:nth-child(5) td").text.strip.capitalize!
+					cdm_proj_scale = gsp_page_html.css("tr:nth-child(5) td").text.strip.capitalize!
 				else
-					@cdm_proj_scale = gsp_page.css("tr:nth-child(6) td").text.strip.capitalize!
+					cdm_proj_scale = gsp_page_html.css("tr:nth-child(6) td").text.strip.capitalize!
 				end
 				#Retreave the fee amount
-				cdm_fee = gsp_page.css("tr:nth-child(8) span").text
+				cdm_fee = gsp_page_html.css("tr:nth-child(8) span").text
 				if cdm_fee.empty? then
-					cdm_fee = gsp_page.css("tr:nth-child(9) span").text
+					cdm_fee = gsp_page_html.css("tr:nth-child(9) span").text
 				end
 				#Create a new project record
-				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => @cdm_proj_scale, :fee => cdm_fee)
-				#Check if country name exists
-				country = Country.where('name = ?', cdm_host_country).first
-				#Write in the new country names or return the one found above
-				country ||= Country.create(:name => cdm_host_country)
-				#Create a role for the country in the project
-				project.roles.build(:country_id => country.id, :role => "Host")
-				#COllect the list of all investor countries and loop through that
-				gsp_page.css("tr:nth-child(3) strong").to_a.each do |ic|
-					ic = ic.text
-					if !ic.index(/[,.]/).nil? then
-						ic = ic[0..ic.index(/[,.]/)-1]
-					end
-					#Check if country name exists
-					country = Country.where('name = ?', ic).first
-					#Write in the new country names or return the one found above
-					country ||= Country.create(:name => ic)
-					#Create a role for the country in the project
-					project.roles.build(:country_id => country.id, :role => "Investor")
-					project.save!
-				end
+				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => cdm_proj_scale, :fee => cdm_fee)
+				
 				#Write the standard name
 				project.standards.build(:name => 'Clean Development Mechanism', :short_name => 'CDM')
 				#Save the database entries
 				project.save!
+				puts "#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_proj_scale}, $#{cdm_fee}"
+				#Analyse the block of "Host country"
+				gsp_page_html.css("tr:nth-child(2)").children[2].children.each do |a|
+					if !a.text.strip.empty? then
+						#Retreave the country name
+						cdm_host_country = a.children[1].text
+						puts "Found the country name"
+						#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
+						doc_url = a.children[3]['href']
+						#Grab all the project participants
+						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
+						#set the role variable
+						role = "Host"
+						#set the process variable
+						process_type = "Registration"
+						#set the doc title; including the country name into doc's name for now.
+						doc_title = "Letter of Approval (" + cdm_host_country + ")"
+						#Define the issue date of the document
+						issue_date = "01.01.2000"
+						#Check if country name exists
+						country = Country.where('name = ?', cdm_host_country).first
+						#Write in the new country names or return the one found above
+						country ||= Country.create!(:name => cdm_host_country)
+						#Create a role for the country in the project
+						project.roles.build(:country_id => country.id, :role => role)
+						#Write project url into the database
+						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
+						project.save!
+						puts "Host country is #{country.name}"
+					end
+				end
+				if gsp_page_html.css("tr:nth-child(3)").children[2].children.text.strip != "n/a" then
+					#Grab the block with the investor country's info
+					gsp_page_html.css("tr:nth-child(3)").children[2].children.each do |a|
+						#Some of the elements will be nil, so need to check
+						if !a.text.strip.empty? then
+							#Define the investor country name
+							cdm_inv_country = a.children[1].text
+							#Special check for Canada, because it has withdrawn from KP
+							#if !ic.index(/[,.]/).nil? then
+							#	ic = ic[0..ic.index(/[,.]/)-1]
+							#end
+							#Define if the country involved directly or not, UNUSED FOR NOW IN DATABASE
+							if a.text.strip =~ /involved/ then
+								if a.text.strip =~ /indirectly/
+									inv_country_role = "indirectly"
+								else
+									inv_country_role = "directly"
+								end
+							end
+							inv_country_role ||= "Unknown"
+							#Define the role of the country
+							role = "Investor"
+							#set the process variable
+							process_type = "Registration"
+							#set the doc title; including the country name into doc's name for now.
+							doc_title = "Letter of Approval (" + cdm_inv_country + ")"
+							#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
+							doc_url = a.children[5]['href']
+							#Define the issue date of the document
+							issue_date = "01.01.2000"
+							if a.children[10] then
+								#Grab all the project participants
+								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
+							else
+								host_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip
+							end
+							#Check if country name exists
+							country = Country.where('name = ?', cdm_inv_country).first
+							#Write in the new country names or return the one found above
+							country ||= Country.create!(:name => cdm_inv_country)
+							#Create a role for the country in the project
+							project.roles.build(:country_id => country.id, :role => role)
+							#Write project url into the database
+							project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
+							project.save!
+							puts "Investor country is #{country.name}"
+						end
+					end
+				end
+				
 				#Update the crawl record for the project page
-				crawl.update_attributes(:html => @gsp_page_html.to_html, :project_id => project.id, :status_code => 2)
+				crawl.update_attributes(:html => gsp_page_html.to_html, :project_id => project.id, :status_code => 2)
 				crawl.touch
 				crawl.save
-				puts "#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_host_country}, #{@cdm_proj_scale}, $#{cdm_fee}"
 				
-				associated_pages = Webcrawl.where("url like ?", "%#{gsp_page_url[0..-2]}%")
+				
+				associated_pages = Webcrawl.where('url like ?', "%#{gsp_page_url[0..-2]}%")
 				associated_pages.each do |x|
 					x.update_attributes(:project_id => project.id)
 					puts "Associated pages updated with project id #{project.id}"
-				end
-				
+				end	
 			}
 		rescue Timeout::Error
 			if crawl.retries > 0
@@ -472,8 +533,10 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					country = Country.where('name = ?', country_name).first
 					#Write in the new country names or return the one found above
 					country ||= Country.create(:name => country_name)
+					#define countries role
+					role = "Host"
 					#Create a role for the country in the project
-					project.roles.build(:country_id => country.id, :role => "Host")
+					project.roles.build(:country_id => country.id, :role => role)
 					#Write the standard name
 					project.standards.build(:name => standard, :short_name => @short_standard)
 					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links
@@ -488,14 +551,16 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						#Ammend the title of the document with ID at the end (for control purposes)
 						#doc_title = doc_id.prepend(d.children.text)
 						process_type = "Unknown"
-						if !(doc_title =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol| oda /).nil? then
+						if !(doc_title =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol| oda /i).nil? then
 							process_type = "Registration"
 						end
-						if !(doc_title =~ /verif|monito|issuan/).nil? then
+						if !(doc_title =~ /verif|monito|issuan/i).nil? then
 							process_type = "Issuance"
 						end
+						#Define the issue date of the document
+						issue_date = "01.01.2000"
 						#Write project url into the database
-						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => "01.01.2000", :link => doc_url)
+						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
 						#Save the database entries
 						project.save!
 					end
@@ -544,9 +609,9 @@ end
 
 #vcs_update_page_crawler
 #vcs_new_page_crawler
-markit_update_page_crawler
-markit_new_page_crawler
-#cdm_new_page_crawler
+#markit_update_page_crawler
+#markit_new_page_crawler
+cdm_new_page_crawler
 #cdm_update_page_crawler
 
 if !Webcrawl.where(:status_code => 4).empty? then

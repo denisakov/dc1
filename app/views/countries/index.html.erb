@@ -1,9 +1,9 @@
-<h1>Listing countries</h1>
+<h1>Countries</h1>
 
 <table>
   <tr>
     <th>Name</th>
-    <th>Project</th>
+    <th># of projects</th>
     <th></th>
     <th></th>
     <th></th>
@@ -12,7 +12,7 @@
 <% @countries.each do |country| %>
   <tr>
     <td><%= country.name %></td>
-    <td><%= country.project_id %></td>
+    <td><%= country.projects.count %></td>
     <td><%= link_to 'Show', country %></td>
     <td><%= link_to 'Edit', edit_country_path(country) %></td>
     <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>
