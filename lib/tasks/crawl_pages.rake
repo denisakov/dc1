@@ -92,7 +92,6 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				#Retreave the project title
 				cdm_proj_title = cdm_proj_id_title[cdm_proj_id_title.index(":")+1..cdm_proj_id_title.length].strip
 
-				#cdm_host_country = gsp_page_html.css("tr:nth-child(2) strong").text
 				#Find if the scale is the number 5 or number 6
 				if gsp_page_html.css("tr:nth-child(5) th").inner_text.strip == "Activity Scale"
 					#Grab the project scale
@@ -113,6 +112,44 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				#Save the database entries
 				project.save!
 				puts "#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_proj_scale}, $#{cdm_fee}"
+				#Grab the PDD and related docs
+				gsp_page_html.css("tr:nth-child(1)").children[2].children.each do |a|
+					if a['href'] =~ /FileStorage/ then
+						doc_url = a['href']
+						#set the doc title; including the country name into doc's name for now.
+						doc_title = a.inner_text
+						#set document short name
+						short_doc_title = ""
+					end
+					if a.inner_text =~ /project design document/ then
+						doc_url = a['href']
+						#set the doc title; including the country name into doc's name for now.
+						doc_title = "Project Design Document"
+						#set document short name
+						short_doc_title = "PDD"
+					end
+					if a.inner_text =~ /registration request form/ then
+						doc_url = a['href']
+						#set the doc title; including the country name into doc's name for now.
+						doc_title = "Registration Request Form"
+						#set document short name
+						short_doc_title = "RegForm"
+					end
+					if a.inner_text =~ /accepted/ then
+						new_pdd_acc_date = Date.parse(a.next.next.inner_text)
+					end
+					#set the process variable
+					process_type = "Registration"
+					#Define the issue date of the document
+					issue_date = "01.01.2000"
+					if doc_title and doc_url then
+						#Write project url into the database
+						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
+						project.save!
+						puts "#{doc_title}"
+						puts "#{doc_url}"
+					end
+				end
 				#Analyse the block of "Host country"
 				gsp_page_html.css("tr:nth-child(2)").children[2].children.each do |a|
 					if !a.text.strip.empty? then
@@ -129,6 +166,8 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						process_type = "Registration"
 						#set the doc title; including the country name into doc's name for now.
 						doc_title = "Letter of Approval (" + cdm_host_country + ")"
+						#set document short name
+						short_doc_title = "LoA"
 						#Define the issue date of the document
 						issue_date = "01.01.2000"
 						#Check if country name exists
@@ -169,6 +208,8 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							process_type = "Registration"
 							#set the doc title; including the country name into doc's name for now.
 							doc_title = "Letter of Approval (" + cdm_inv_country + ")"
+							#set document short name
+							short_doc_title = "PDD"
 							#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
 							doc_url = a.children[5]['href']
 							#Define the issue date of the document

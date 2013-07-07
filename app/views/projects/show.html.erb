@@ -21,12 +21,26 @@
 </p>
 <p>
 	<b>Host country:</b>
-	<%= @project.countries(:role => "Host").first.name %>
+	<% if @project.roles.where(:role => "Host").first then %>
+      <td><%= @project.countries.where(:id => @project.roles.where(:role => "Host").first.country_id).first.name %></td>
+    <% end %>
+</p>
+<p>
+	<b>Annex-I countries:</b>
+	<% if @project.roles.where(:role => "Investor") then %>
+        <% @project.roles.where(:role => "Investor").each do |x| %>
+          <% @project.countries.where(:id => x.country_id).each do |y| %>
+            <%= y.name %> <br />
+          <% end %>
+        <% end %>
+    <% else %>
+	    <%= "None" %>
+    <% end %>
 </p>
 <p>
 	<b>Fee:</b>
 	<% if !@project.fee.blank? %>
-		<%= @project.fee %>
+		$<%= @project.fee %>
 	<% else %>
 		<%= "Unknown" %>
 	<% end %>
