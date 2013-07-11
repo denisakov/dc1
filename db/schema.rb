@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130630151317) do
+ActiveRecord::Schema.define(:version => 20130711161612) do
 
   create_table "countries", :force => true do |t|
     t.string   "name"
@@ -21,16 +21,27 @@ ActiveRecord::Schema.define(:version => 20130630151317) do
 
   create_table "documents", :force => true do |t|
     t.string   "title"
+    t.string   "short_title"
     t.integer  "version"
     t.text     "link"
     t.text     "process_type"
-    t.datetime "issue_date"
     t.integer  "project_id"
     t.datetime "created_at",   :null => false
     t.datetime "updated_at",   :null => false
   end
 
   add_index "documents", ["project_id", "process_type"], :name => "index_documents_on_project_id_and_process_type"
+
+  create_table "occasions", :force => true do |t|
+    t.text     "description"
+    t.integer  "project_id"
+    t.integer  "country_id"
+    t.integer  "when_date_id"
+    t.integer  "document_id"
+    t.integer  "standard_id"
+    t.datetime "created_at",   :null => false
+    t.datetime "updated_at",   :null => false
+  end
 
   create_table "projects", :force => true do |t|
     t.string   "title"
@@ -53,13 +64,11 @@ ActiveRecord::Schema.define(:version => 20130630151317) do
 
   create_table "standards", :force => true do |t|
     t.string   "name"
-    t.string   "short_name"
     t.integer  "project_id"
+    t.string   "short_name"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
-
-  add_index "standards", ["project_id"], :name => "index_standards_on_project_id"
 
   create_table "webcrawls", :force => true do |t|
     t.text     "html"
@@ -74,5 +83,13 @@ ActiveRecord::Schema.define(:version => 20130630151317) do
   end
 
   add_index "webcrawls", ["project_id"], :name => "index_webcrawls_on_project_id"
+
+  create_table "when_dates", :force => true do |t|
+    t.datetime "date"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
+  end
+
+  add_index "when_dates", ["date"], :name => "index_when_dates_on_date"
 
 end

@@ -5,4 +5,6 @@ class Project < ActiveRecord::Base
   has_many :standards
   has_many :documents
   has_many :webcrawls
+  has_many :occasions, :inverse_of => :when_date
+  has_many :when_dates, :through => :occasions
 end

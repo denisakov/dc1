@@ -1,7 +1,16 @@
 Dc1::Application.routes.draw do
 
+  resources :occasions
+
+
+  resources :when_dates
+
+
+  get "roles/index"
+
   resources :webcrawls
 
+  resources :roles
 
   root to: 'static_pages#home'
 

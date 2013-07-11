@@ -1,8 +1,9 @@
-<h1>Listing standards</h1>
+<h1>Standards</h1>
 
-<table>
+<table class="table table-condensed table-hover">
   <tr>
     <th>Name</th>
+    <th>Short name</th>
     <th>Project</th>
     <th></th>
     <th></th>
@@ -12,14 +13,11 @@
 <% @standards.each do |standard| %>
   <tr>
     <td><%= standard.name %></td>
-    <td><%= standard.project_id %></td>
+    <td><%= standard.short_name %></td>
+    <td><%= standard.when_dates.first.projects.first.id %></td>
     <td><%= link_to 'Show', standard %></td>
     <td><%= link_to 'Edit', edit_standard_path(standard) %></td>
     <td><%= link_to 'Destroy', standard, method: :delete, data: { confirm: 'Are you sure?' } %></td>
   </tr>
 <% end %>
 </table>
-
-<br />
-
-<%= link_to 'New Standard', new_standard_path %>

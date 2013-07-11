@@ -1,0 +1,34 @@
+<h1>Dates</h1>
+
+<table class="table table-condensed table-hover">
+  <tr>
+    <th>Date</th>
+    <th>Countries</th>
+    <th>Projects</th>
+    <th>Occasions</th>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @when_dates.each do |when_date| %>
+  <tr>
+    <td><%= when_date.date_string %></td>
+    <td><% when_date.countries.each do |c| %>
+          - <%= c.name %><br />
+        <% end %>
+    </td>
+    <td><% when_date.projects.each do |p| %>
+          - <%= p.standards.first.short_name %><%= p.refno %><br />
+        <% end %>
+    </td>
+    <td><% when_date.occasions.each do |o| %>
+          - <%= o.description %><br />
+          <% end %>
+    </td>
+    <td><%= link_to 'Show', when_date %></td>
+    <td><%= link_to 'Edit', edit_when_date_path(when_date) %></td>
+    <td><%= link_to 'Destroy', when_date, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+  </tr>
+<% end %>
+</table>

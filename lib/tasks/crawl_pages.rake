@@ -12,7 +12,7 @@ namespace :crawl do
 	@agent.idle_timeout = 0.9
 
 def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 2))
- 	puts "Updating the CDM pproject data"
+ 	puts "Updating the CDM project data"
 	webcrawls.each do |crawl|
 		begin
 			cdm_proj_url = crawl.url
@@ -82,6 +82,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 		begin
 			gsp_page_url = crawl.url
 			status = Timeout::timeout(20) {
+				puts "Started"
 				page_html = open(gsp_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
 				gsp_page = Nokogiri::HTML(page_html)
 				gsp_page_html = gsp_page.css("html body div#container div#content div#cols div#main")
@@ -106,12 +107,56 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				end
 				#Create a new project record
 				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => cdm_proj_scale, :fee => cdm_fee)
-				
+				puts "created a project"
+				std_name = "Clean Development Mechanism"
+				short_std_name = "CDM"
 				#Write the standard name
-				project.standards.build(:name => 'Clean Development Mechanism', :short_name => 'CDM')
-				#Save the database entries
-				project.save!
+				standard = Standard.create(:name => std_name, :short_name => short_std_name, :project_id => project.id)
+
 				puts "#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_proj_scale}, $#{cdm_fee}"
+				
+				#Analyse the block of "Host country"
+				gsp_page_html.css("tr:nth-child(2)").children[2].children.each do |a|
+					if !a.text.strip.empty? then
+						#Retreave the country name
+						cdm_host_country = a.children[1].text
+						puts "Found the country name"
+						#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
+						doc_url = a.children[3]['href']
+						#Grab all the project participants
+						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
+						#set the role variable
+						role = "Host"
+						#set the process variable
+						process_type = "Registration"
+						#set the doc title; including the country name into doc's name for now.
+						doc_title = "Letter of Approval (" + cdm_host_country + ")"
+						#set document short name
+						short_doc_title = "LoA"
+						#Define the issue date of the document
+						issue_date = "01.01.2000"
+						#Check if date exists
+						date = WhenDate.where('date = ?', issue_date).first
+						#Write in the new date or return the one found above
+						date ||= WhenDate.create!(:date => issue_date)
+
+						#Check if country name exists
+						@country = Country.where('name = ?', cdm_host_country).first
+						#Write in the new country names or return the one found above
+						@country ||= Country.create!(:name => cdm_host_country)
+						#Create a role for the country in the project
+						project.roles.build(:country_id => @country.id, :role => role)						
+						
+						#Create a document
+						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+
+						#Create an occasion for the date in the project, country, document and standard
+						project.occasions.build(:description => "Issue date of #{short_doc_title} by #{@country.name}", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						
+						project.save!
+						puts "Host country is #{@country.name}"
+					end
+				end
 				#Grab the PDD and related docs
 				gsp_page_html.css("tr:nth-child(1)").children[2].children.each do |a|
 					if a['href'] =~ /FileStorage/ then
@@ -135,53 +180,41 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						#set document short name
 						short_doc_title = "RegForm"
 					end
-					if a.inner_text =~ /accepted/ then
-						new_pdd_acc_date = Date.parse(a.next.next.inner_text)
-					end
 					#set the process variable
 					process_type = "Registration"
-					#Define the issue date of the document
-					issue_date = "01.01.2000"
 					if doc_title and doc_url then
-						#Write project url into the database
-						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
+						if a.inner_text =~ /accepted/ then
+							new_pdd_acc_date = Date.parse(a.next.next.inner_text)
+
+							#Check if date exists
+							date = WhenDate.where('date = ?', new_pdd_acc_date).first
+							#Write in the new date or return the one found above
+							date ||= WhenDate.create!(:date => new_pdd_acc_date)
+							#Create a document
+							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+							#Create an occasion for the date in the project, country, document and standard
+							project.occasions.build(:description => "PDD was accepted by CDM EB", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.save!
+
+						end
+						#Define the issue date of the document
+						issue_date = "01.01.2000"
+						#Check if date exists
+						date = WhenDate.where('date = ?', issue_date).first
+						#Write in the new date or return the one found above
+						date ||= WhenDate.create!(:date => issue_date)
+						#Create a document
+						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+						#Create an occasion for the date in the project, country, document and standard
+						project.occasions.build(:description => "Issue date of #{short_doc_title} by #{@country.name}", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						project.save!
+
 						puts "#{doc_title}"
 						puts "#{doc_url}"
 					end
 				end
-				#Analyse the block of "Host country"
-				gsp_page_html.css("tr:nth-child(2)").children[2].children.each do |a|
-					if !a.text.strip.empty? then
-						#Retreave the country name
-						cdm_host_country = a.children[1].text
-						puts "Found the country name"
-						#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
-						doc_url = a.children[3]['href']
-						#Grab all the project participants
-						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
-						#set the role variable
-						role = "Host"
-						#set the process variable
-						process_type = "Registration"
-						#set the doc title; including the country name into doc's name for now.
-						doc_title = "Letter of Approval (" + cdm_host_country + ")"
-						#set document short name
-						short_doc_title = "LoA"
-						#Define the issue date of the document
-						issue_date = "01.01.2000"
-						#Check if country name exists
-						country = Country.where('name = ?', cdm_host_country).first
-						#Write in the new country names or return the one found above
-						country ||= Country.create!(:name => cdm_host_country)
-						#Create a role for the country in the project
-						project.roles.build(:country_id => country.id, :role => role)
-						#Write project url into the database
-						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
-						project.save!
-						puts "Host country is #{country.name}"
-					end
-				end
+				
+				#Analyse the block of "Annex-I country"
 				if gsp_page_html.css("tr:nth-child(3)").children[2].children.text.strip != "n/a" then
 					#Grab the block with the investor country's info
 					gsp_page_html.css("tr:nth-child(3)").children[2].children.each do |a|
@@ -209,11 +242,16 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							#set the doc title; including the country name into doc's name for now.
 							doc_title = "Letter of Approval (" + cdm_inv_country + ")"
 							#set document short name
-							short_doc_title = "PDD"
+							short_doc_title = "LoA"
 							#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
 							doc_url = a.children[5]['href']
 							#Define the issue date of the document
 							issue_date = "01.01.2000"
+							#Check if date exists
+							date = WhenDate.where('date = ?', issue_date).first
+							#Write in the new date or return the one found above
+							date ||= WhenDate.create!(:date => issue_date)
+
 							if a.children[10] then
 								#Grab all the project participants
 								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
@@ -226,8 +264,12 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							country ||= Country.create!(:name => cdm_inv_country)
 							#Create a role for the country in the project
 							project.roles.build(:country_id => country.id, :role => role)
-							#Write project url into the database
-							project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
+							#Create a document
+							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+
+							#Create an occasion for the date in the project, country, document and standard
+							project.occasions.build(:description => "Issue date of #{short_doc_title} by #{country.name}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+
 							project.save!
 							puts "Investor country is #{country.name}"
 						end
@@ -370,10 +412,16 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 					country ||= Country.create(:name => vcs_host_country)
 					#Create a role for the country in the project
 					project.roles.build(:country_id => country.id, :role => "Host")
-					#Write the standard name
-					project.standards.build(:name => 'Verified Carbon Standard', :short_name => 'VCS')
 					#Save the database entries
 					project.save!
+
+					std_name = "Verified Carbon Standard"
+					short_std_name = "VCS"
+					#Write the standard name
+					standard = Standard.create(:name => std_name, :short_name => short_std_name, :project_id => project.id)
+					
+					issue_date = "01.01.2000"
+					
 					if !vcs_page_html.search("td:nth-child(1) a").empty? then
 						#Set the process type
 						process_type = "Registration"
@@ -383,11 +431,26 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 							doc_url = d['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
 							#Find the title of the document
 							doc_title = d.inner_text
-							#Grab the Upload date (FOR FUTURE USE)
-							#doc_upload_time = d.parent.parent.last_element_child.inner_text
-							#Write project url into the database
-							project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url, :process_type => process_type)
-							#Save the database entries
+							short_doc_title = ""
+							#Check if date exists
+							date = WhenDate.where('date = ?', issue_date).first
+							#Write in the new date or return the one found above
+							date ||= WhenDate.create!(:date => issue_date)
+							#Create a document
+							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+
+							#Create an occasion for the date in the project, country, document and standard
+							project.occasions.build(:description => "Issue date of #{short_doc_title} by #{country.name}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+
+							project.save!
+							#Grab the Upload date
+							doc_upload_time = Date.parse(d.parent.parent.last_element_child.inner_text)
+							#Check if date exists
+							date = WhenDate.where('date = ?', doc_upload_time).first
+							#Write in the new date or return the one found above
+							date ||= WhenDate.create!(:date => doc_upload_time)
+							#Create an occasion for the date in the project, country, document and standard
+							project.occasions.build(:description => "Upload date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 							project.save!
 						end
 					end
@@ -399,15 +462,33 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 							doc_url = d.parent.last_element_child['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
 							#Find the title of the document
 							doc_title = d.parent.parent.first_element_child.text
-							#Grab the Upload date (FOR FUTURE USE)
-							#doc_upload_time = d.parent.parent.last_element_child.inner_text
+
+							short_doc_title = ""
+							
 							#Write project url into the database
 							if d.parent.parent.first_element_child.parent.parent.parent.first_element_child.text == "Issuance Documents"
 								process_type = "Issuance"
 							else
 								process_type = "Unknown"
 							end
-							project.documents.build(:title => doc_title, :issue_date => "01.01.2000", :link => doc_url, :process_type => process_type)
+							#Check if date exists
+							date = WhenDate.where('date = ?', issue_date).first
+							#Write in the new date or return the one found above
+							date ||= WhenDate.create!(:date => issue_date)
+							#Create a document
+							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+							#Create an occasion for the date in the project, country, document and standard
+							project.occasions.build(:description => "Issue date of #{short_doc_title} by #{country.name}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.save!
+
+							#Grab the Upload date
+							doc_upload_time = d.parent.parent.last_element_child.inner_text
+							#Check if date exists
+							date = WhenDate.where('date = ?', doc_upload_time).first
+							#Write in the new date or return the one found above
+							date ||= WhenDate.create!(:date => doc_upload_time)
+							#Create an occasion for the date in the project, country, document and standard
+							project.occasions.build(:description => "Upload date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 							#Save the database entries
 							project.save!
 						end
@@ -555,15 +636,15 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					#Find the name of the standard
 					standard = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
 					#Identify which standard it is to see which short name to use
-					@short_standard = standard
+					short_standard = standard
 					if standard == "Gold Standard"
-						@short_standard = "GS"
+						short_standard = "GS"
 					end
 					if standard == "Social Carbon"
-						@short_standard = "SC"
+						short_standard = "SC"
 					end
 					if standard == "Verified Carbon Standard"
-						@short_standard = "VCS"
+						short_standard = "VCS"
 					end
 					#Find the project reference number
 					proj_id = id.text.delete "(ID: )"
@@ -578,11 +659,13 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					role = "Host"
 					#Create a role for the country in the project
 					project.roles.build(:country_id => country.id, :role => role)
-					#Write the standard name
-					project.standards.build(:name => standard, :short_name => @short_standard)
-					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links
 					#Save the database entries
 					project.save!
+					#Write the standard name
+					standard = Standard.create(:name => standard, :short_name => short_standard, :project_id => project.id)
+					#Define the issue date of the document
+					issue_date = "01.01.2000"
+					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links					
 					mark_page_html.css(".doc").each do |d|
 						doc_url = d['href'].strip.prepend("http://mer.markit.com")
 						#Find the document id
@@ -598,12 +681,27 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						if !(doc_title =~ /verif|monito|issuan/i).nil? then
 							process_type = "Issuance"
 						end
-						#Define the issue date of the document
-						issue_date = "01.01.2000"
-						#Write project url into the database
-						project.documents.build(:title => doc_title, :process_type => process_type, :issue_date => issue_date, :link => doc_url)
-						#Save the database entries
+						
+						#Check if date exists
+						date = WhenDate.where('date = ?', issue_date).first
+						#Write in the new date or return the one found above
+						date ||= WhenDate.create!(:date => issue_date)
+						#Create a document
+						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+						#Create an occasion for the date in the project, country, document and standard
+						project.occasions.build(:description => "Issue date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						project.save!
+
+						#Grab the Upload date
+						#doc_upload_time = 
+						#Check if date exists
+						#date = WhenDate.where('date = ?', doc_upload_time).first
+						#Write in the new date or return the one found above
+						#date ||= WhenDate.create!(:date => doc_upload_time)
+						#Create an occasion for the date in the project, country, document and standard
+						#project.occasions.build(:description => "Upload date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						#Save the database entries
+						#project.save!
 					end
 					
 					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
@@ -649,10 +747,10 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 end
 
 #vcs_update_page_crawler
-#vcs_new_page_crawler
+vcs_new_page_crawler
 #markit_update_page_crawler
 #markit_new_page_crawler
-cdm_new_page_crawler
+#cdm_new_page_crawler
 #cdm_update_page_crawler
 
 if !Webcrawl.where(:status_code => 4).empty? then

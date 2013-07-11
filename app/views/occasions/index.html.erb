@@ -1,0 +1,23 @@
+<h1>Listing occasions</h1>
+
+<table>
+  <tr>
+    <th>Description</th>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @occasions.each do |occasion| %>
+  <tr>
+    <td><%= occasion.description %></td>
+    <td><%= link_to 'Show', occasion %></td>
+    <td><%= link_to 'Edit', edit_occasion_path(occasion) %></td>
+    <td><%= link_to 'Destroy', occasion, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Occasion', new_occasion_path %>

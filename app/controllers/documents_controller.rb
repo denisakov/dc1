@@ -85,7 +85,7 @@ class DocumentsController < ApplicationController
 private
 
   def sort_column
-    Document.column_names.include?(params[:sort]) ? params[:sort] : "project_id"
+    Document.column_names.include?(params[:sort]) ? params[:sort] : "title"
   end
 
   def sort_direction
