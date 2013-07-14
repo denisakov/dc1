@@ -16,10 +16,14 @@
     <%= f.text_area :title %>
   </div>
   <br />
+  <% @document.occasions.each do |o| %>
   <div>
-    Date of issue
-    <%= f.text_field :issue_date_string %>
+    <%= o.description %>
+    <% @when_date = WhenDate.find_by_id(o.when_date_id) %>
+    <%= render 'when_dates/form' %>
   </div>
+  <br />
+  <% end %>
   <br />
   <div>  
     <%= f.submit nil, :class => 'btn btn-primary' %> |

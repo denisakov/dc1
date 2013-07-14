@@ -1,5 +1,3 @@
-<p id="notice"><%= notice %></p>
-
 <p>
   <b>Title:</b>
   <%= @document.title %>
@@ -12,7 +10,7 @@
 
 <p>
   <b>Issue date:</b>
-  <%= @document.issue_date %>
+  <%= @document.when_dates.first.date_string %>This is not correct
 </p>
 
 <p>

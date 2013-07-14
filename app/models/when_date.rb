@@ -12,7 +12,7 @@ class WhenDate < ActiveRecord::Base
   require 'chronic'
 
   def date_string
-    date.to_s(:date)
+    date.to_s(:doc_date)
   end
 
   def date_string=(value)

@@ -7,26 +7,24 @@
 	</div>
 </div>
 <% @project.documents.each do |d| %>
-<div class="togle-unit">
-	<div class="row-fluid">
-		<div class="span9">
-			<%= d.title %> (<%= d.issue_date_string %>)
-			<u class="togle-control" data-text="(Expand)" data-expanded-text="(Collapse)">
-			(Expand)
-			</u>
-		</div>
-		<div id="pdf" class="togle-content">
-			<object class="span9" height="600" type="application/pdf" data="<%= d.link+'#zoom=85&scrollbar=0&toolbar=0&navpanes=0' %>" id="pdf_content">
+<div class="row-fluid"  style="margin-bottom: 20px">
+	<div style="margin-bottom: 10px">
+		<a data-toggle="collapse" data-target="#collapse<%= d.id %>" href="#collapse<%= d.id %>">
+			<h5><%= d.title %> (<%= d.when_dates.first.date_string %>)</h5>
+		</a>
+	</div>
+	<div id="collapse<%= d.id %>" class="collapse">
+		<div id="pdf">
+			<object class="span9" height="600" type="application/pdf" data="<%= d.link+'#zoom=90&scrollbar=0&toolbar=0&navpanes=0' %>" id="pdf_content">
 			<p class="lead">Can't display the document in your browser. Try <a href="<%= d.link %>">downloading</a> it.</p>
-			<embed type="application/pdf" src="<%= d.link %>" class="span9" height="600" />
 			</object>
 			<div class="span3">
-				<div style="margin-bottom: 420px">
+				<div>
 					<% @document = d %>
 					<%= render 'documents/form' %>
 				</div>
 			</div>
-		</div><!-- /.togle-content -->
+		</div>
 	</div>
-</div><!-- /.togle.unit -->
+</div>
 <% end %>

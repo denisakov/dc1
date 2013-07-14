@@ -19,3 +19,6 @@ $(document).ready(function() {
 		}
 	})
 });
+
+$(".accordion").on "show hide", (e) -> 
+  $(e.target).siblings(".accordion-heading").find(".accordion-toggle i").toggleClass "icon-chevron-down and icon-chevron-right"
