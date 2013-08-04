@@ -1,8 +1,9 @@
 class CountriesController < ApplicationController
+  helper_method :sort_column, :sort_direction
   # GET /countries
   # GET /countries.json
   def index
-    @countries = Country.all
+    @countries = Country.scoped.order(sort_column + " " + sort_direction)
 
     respond_to do |format|
       format.html # index.html.erb
@@ -84,7 +85,7 @@ class CountriesController < ApplicationController
   private
 
   def sort_column
-    Country.column_names.include?(params[:sort]) ? params[:sort] : "project_id"
+    Country.column_names.include?(params[:sort]) ? params[:sort] : "name"
   end
 
   def sort_direction

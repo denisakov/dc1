@@ -5,37 +5,23 @@
 .clickable {cursor: pointer;}
 
 /* pagination */
+.pagination{
+  margin: 5px 0 0 0;
+  height: 16px;
+}
+
 .pagination .next.next_page.disabled, .pagination .prev.previous_page.disabled {
   display:none;
 }
 
-th .current {
-  padding-right: 12px;
-  background-repeat: no-repeat;
-  background-position: right center;
+.pagination a, .pagination span {
+  border-width: 1px 1px 1px 0;
+  padding: 0 0.5em;
+  line-height: 1.2em;
+  float: left;
 }
 
-th .current.asc {
-  background-image: url(/up_arrow.gif);
-}
-
-th .current.desc {
-  background-image: url(/down_arrow.gif);
-}
-
-/* universal */
-
-html {
-  overflow-y: scroll;
-}
-
-body {
-  padding-top: 60px;
-}
-
-section {
-  overflow: auto;
-}
+/* tables */
 
 table a:hover {
   background-color: inherit;
@@ -48,6 +34,34 @@ textarea, {
   height: 5em;
   wrap: virtual;
 }
+
+/* universal */
+
+.row-fluid [class*="span"] {
+    min-height: 16px;
+}
+
+html {
+  overflow-y: scroll;
+}
+
+body {
+  padding-top: 40px;
+}
+
+.content {
+    background-color: #ffffff;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    margin: 0 -20px;
+    padding: 10px;
+}
+
+section {
+  overflow: auto;
+}
+
+
 
 input[type=text] {
   width: 95%;
@@ -134,4 +148,8 @@ footer ul {
 footer ul li {
   float: left;
   margin-left: 10px;
+}
+
+#pdf_content {
+  height: 600px;
 }

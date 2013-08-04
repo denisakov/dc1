@@ -61,6 +61,22 @@ def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :st
 				crawl.touch
 				crawl.save
 			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
 		end
 	end
 	if !@timed_out.empty? then
@@ -304,6 +320,22 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				crawl.touch
 				crawl.save
 			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
 		end
 	end
 	if !@timed_out.empty? then
@@ -369,6 +401,22 @@ def vcs_update_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status
 				crawl.touch
 				crawl.save
 			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
 		end
 	end
 	if !@timed_out.empty? then
@@ -402,7 +450,7 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 				#Find the project reference number
 				vcs_proj_id = "%.4i" %vcs_page_html.search("dd:nth-child(2)").text.delete("^0-9")
 				#check if the project is empty record
-
+				puts "Starting with the project #{vcs_proj_id}"
 				if !vcs_proj_title.empty? and !vcs_host_country.empty? and !vcs_proj_title.downcase.include? "error" then
 					#Create a new project record
 					project = Project.create!(:title => vcs_proj_title, :refno => vcs_proj_id)
@@ -410,8 +458,9 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 					country = Country.where('name = ?', vcs_host_country).first
 					#Write in the new country names or return the one found above
 					country ||= Country.create(:name => vcs_host_country)
+					role = "Host"
 					#Create a role for the country in the project
-					project.roles.build(:country_id => country.id, :role => "Host")
+					project.roles.build(:country_id => country.id, :role => role)
 					#Save the database entries
 					project.save!
 
@@ -440,17 +489,22 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 
 							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Issue date of #{short_doc_title} by #{country.name}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 
 							project.save!
 							#Grab the Upload date
-							doc_upload_time = Date.parse(d.parent.parent.last_element_child.inner_text)
+							if d.parent.parent.last_element_child.inner_text !~ /VCS/ then
+								puts "#{d.parent.parent.last_element_child.inner_text} - #{doc_title} - #{process_type}"
+								doc_upload_time = Date.parse(d.parent.parent.last_element_child.inner_text)
+							else
+								doc_upload_time = issue_date
+							end
 							#Check if date exists
 							date = WhenDate.where('date = ?', doc_upload_time).first
 							#Write in the new date or return the one found above
 							date ||= WhenDate.create!(:date => doc_upload_time)
 							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Upload date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.occasions.build(:description => "Upload date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 							project.save!
 						end
 					end
@@ -478,17 +532,22 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 							#Create a document
 							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Issue date of #{short_doc_title} by #{country.name}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 							project.save!
 
 							#Grab the Upload date
-							doc_upload_time = d.parent.parent.last_element_child.inner_text
+							if d.parent.parent.last_element_child.inner_text !~ /VCS/ then
+								puts "#{d.parent.parent.last_element_child.inner_text} - #{doc_title} - #{process_type}"
+								doc_upload_time = Date.parse(d.parent.parent.last_element_child.inner_text)
+							else
+								doc_upload_time = issue_date
+							end
 							#Check if date exists
 							date = WhenDate.where('date = ?', doc_upload_time).first
 							#Write in the new date or return the one found above
 							date ||= WhenDate.create!(:date => doc_upload_time)
 							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Upload date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.occasions.build(:description => "Upload date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 							#Save the database entries
 							project.save!
 						end
@@ -502,6 +561,10 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 					crawl.save
 					puts "#{vcs_proj_id}. #{vcs_proj_title} - #{vcs_host_country} - Project ID #{project.id}"
 				else
+					vcs_page_html = vcs_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
+					crawl.update_attributes(:html => vcs_page_html, :project_id => vcs_proj_id, :status_code => 5)
+					crawl.touch
+					crawl.save
 					puts "#{vcs_proj_id}. #{vcs_proj_title} - #{vcs_host_country} - Erroneous or incomplete record"
 				end
 			}
@@ -518,6 +581,22 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 				puts crawl.url
 				#Constant timeout status is 4
 				crawl.status_code = 4
+				crawl.touch
+				crawl.save
+			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
 				crawl.touch
 				crawl.save
 			end
@@ -589,6 +668,22 @@ def markit_update_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :st
 				crawl.touch
 				crawl.save
 			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
 		end
 	end
 	if !@timed_out.empty? then
@@ -609,8 +704,9 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 	puts "Collecting new Markit projects data"
 	webcrawls.each do |crawl|
 		begin
-			puts "Starting on #{crawl.url}"
 			mark_page_url = crawl.url
+			puts "Starting on #{crawl.url}"
+			sleep 5
 			status = Timeout::timeout(20) {
 				mark_page_html = Nokogiri::HTML(open(mark_page_url))
 					#puts "grabbed a page"
@@ -624,7 +720,7 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 				#Find the title of the project
 				title = mark_page_html.xpath("/html/body/h1").text.sub(id.text,"").sub('*',"").strip
 				#Check if the title and ID are missing
-				if !title.empty? and !id.empty? then
+				if !title.empty? and !id.empty? and !Project.find_by_title(title) then
 					#Find the full location of the project
 					location = mark_page_html.css(".unitTable tr:nth-child(3) td").text
 					if !location.index(',').nil? then
@@ -672,6 +768,19 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						#doc_id = doc_url.reverse[0..14].reverse.prepend(" - ")
 						#Find the title of the document
 						doc_title = d.children.text
+						short_doc_title = ""
+						if doc_title =~ /project design document|project design description|pdd/i then
+							short_doc_title = "PDD"
+						end
+						if doc_title =~ /monitoring report/i then
+							short_doc_title = "MR"
+						end
+						if doc_title =~ /verification report/i then
+							short_doc_title = "VerR"
+						end
+						if doc_title =~ /validation report/i then
+							short_doc_title = "ValR"
+						end
 						#Ammend the title of the document with ID at the end (for control purposes)
 						#doc_title = doc_id.prepend(d.children.text)
 						process_type = "Unknown"
@@ -681,7 +790,7 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						if !(doc_title =~ /verif|monito|issuan/i).nil? then
 							process_type = "Issuance"
 						end
-						
+
 						#Check if date exists
 						date = WhenDate.where('date = ?', issue_date).first
 						#Write in the new date or return the one found above
@@ -689,28 +798,42 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						#Create a document
 						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Issue date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						project.save!
 
 						#Grab the Upload date
-						#doc_upload_time = 
+						doc_upload_time = issue_date
 						#Check if date exists
-						#date = WhenDate.where('date = ?', doc_upload_time).first
+						date = WhenDate.where('date = ?', doc_upload_time).first
 						#Write in the new date or return the one found above
-						#date ||= WhenDate.create!(:date => doc_upload_time)
+						date ||= WhenDate.create!(:date => doc_upload_time)
 						#Create an occasion for the date in the project, country, document and standard
-						#project.occasions.build(:description => "Upload date of #{short_doc_title}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						project.occasions.build(:description => "Upload date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						#Save the database entries
-						#project.save!
+						project.save!
 					end
 					
 					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
 					crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
 					crawl.touch
 					crawl.save
-					puts "#{@short_standard}#{proj_id} - #{title} - #{country}"
+					puts "#{short_standard}#{proj_id} - #{title} - #{country.name}"
 					project.documents.each do |d|
 						puts "#{d.id} #{d.title}"
+					end
+				else
+					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
+					if Project.find_by_title(title) then
+						puts "Project is the same as in the VCS registry. We don't need duplication!"
+						project_id = Project.find_by_title(title).id
+						crawl.update_attributes(:html => mark_page_html, :project_id => project_id, :status_code => 5)
+						crawl.touch
+						crawl.save
+					else
+						puts "Empty project"
+						crawl.update_attributes(:html => mark_page_html, :status_code => 5)
+						crawl.touch
+						crawl.save
 					end
 				end
 			}
@@ -727,6 +850,22 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 				puts crawl.url
 				#Constant timeout status is 4
 				crawl.status_code = 4
+				crawl.touch
+				crawl.save
+			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
 				crawl.touch
 				crawl.save
 			end
@@ -747,9 +886,9 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 end
 
 #vcs_update_page_crawler
-vcs_new_page_crawler
+#vcs_new_page_crawler
 #markit_update_page_crawler
-#markit_new_page_crawler
+markit_new_page_crawler
 #cdm_new_page_crawler
 #cdm_update_page_crawler
 

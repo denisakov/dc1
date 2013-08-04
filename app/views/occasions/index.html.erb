@@ -1,8 +1,15 @@
-<h1>Listing occasions</h1>
-
-<table>
+<h1>Occasions (<%= @occasions.count %>)</h1>
+<div class="pagination pagination_centered">
+<%= will_paginate @occasions, :previous_label => h("<"), :next_label => h(">"), :container => false %>
+</div>
+<table class="table table-condensed table-hover">
   <tr>
-    <th>Description</th>
+    <th><%= sortable "description" %></th>
+    <th>Document</th>
+    <th>Country</th>
+    <th>Project</th>
+    <th><%= sortable "when_dates.date", "Date" %></th>
+    <th>Standard</th>
     <th></th>
     <th></th>
     <th></th>
@@ -11,13 +18,15 @@
 <% @occasions.each do |occasion| %>
   <tr>
     <td><%= occasion.description %></td>
+    <td><%= Document.find_by_id(occasion.document_id).title %></td>
+    <td><%= Country.find_by_id(occasion.country_id).name %></td>
+    
+    <td><%= Project.find_by_id(occasion.project_id).refno %></td>
+    <td><%= WhenDate.find_by_id(occasion.when_date_id).date_string %></td>
+    <td><%= Standard.find_by_id(occasion.standard_id).short_name %></td>
     <td><%= link_to 'Show', occasion %></td>
     <td><%= link_to 'Edit', edit_occasion_path(occasion) %></td>
     <td><%= link_to 'Destroy', occasion, method: :delete, data: { confirm: 'Are you sure?' } %></td>
   </tr>
 <% end %>
 </table>
-
-<br />
-
-<%= link_to 'New Occasion', new_occasion_path %>

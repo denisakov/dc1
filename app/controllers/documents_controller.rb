@@ -3,7 +3,7 @@ class DocumentsController < ApplicationController
   # GET /documents
   # GET /documents.json
   def index
-    @documents = Document.order(sort_column + " " + sort_direction).page(params[:page]).per_page(30)
+    @documents = Document.includes(:when_dates).order(sort_column + " " + sort_direction).page(params[:page]).per_page(30)
 
     respond_to do |format|
       format.html # index.html.erb
@@ -85,7 +85,7 @@ class DocumentsController < ApplicationController
 private
 
   def sort_column
-    Document.column_names.include?(params[:sort]) ? params[:sort] : "title"
+    Document.includes(:when_dates, :occasions).column_names.include?(params[:sort]) ? params[:sort] : "when_dates.date"
   end
 
   def sort_direction

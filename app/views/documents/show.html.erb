@@ -7,10 +7,21 @@
   <b>Link:</b>
   <%= @document.link %>
 </p>
-
+<% @document.occasions.each do |o| %>
 <p>
   <b>Issue date:</b>
-  <%= @document.when_dates.first.date_string %>This is not correct
+  <% if o.description =~ /issue/i %>
+  <%= WhenDate.find(o.when_date_id).date_string %>
+</p>
+<p>
+  <b>Upload date:</b>
+  <% elsif o.description =~ /upload/i %>
+  <td><%= WhenDate.find(o.when_date_id).date_string %>
+<% else %>
+	<%= "?" %>
+  </td>
+<% end %>
+<% end %>
 </p>
 
 <p>

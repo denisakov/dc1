@@ -1,23 +1,27 @@
 <h1>Standards</h1>
 
 <table class="table table-condensed table-hover">
-  <tr>
-    <th>Name</th>
-    <th>Short name</th>
-    <th>Project</th>
-    <th></th>
-    <th></th>
-    <th></th>
-  </tr>
-
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Short name</th>
+      <th>Project</th>
+      <th></th>
+    </tr>
+  </thead>
 <% @standards.each do |standard| %>
   <tr>
     <td><%= standard.name %></td>
     <td><%= standard.short_name %></td>
-    <td><%= standard.when_dates.first.projects.first.id %></td>
-    <td><%= link_to 'Show', standard %></td>
+    <td>
+      <% if standard.when_dates.first then %>
+        <%= standard.when_dates.first.projects.first.id %>
+      <% else %>
+        <%= "" %>
+      <% end %>
+    </td>
     <td><%= link_to 'Edit', edit_standard_path(standard) %></td>
-    <td><%= link_to 'Destroy', standard, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+    
   </tr>
 <% end %>
 </table>

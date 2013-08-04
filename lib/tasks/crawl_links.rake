@@ -262,7 +262,7 @@ namespace :crawl do
 				end
 			rescue OpenURI::HTTPError => ex
 				if try > 0
-					puts "The seems to be missing! Let's check again."
+					puts "The page #{i} seems to be missing! Let's check again."
 					try -= 1
 					retry
 				else

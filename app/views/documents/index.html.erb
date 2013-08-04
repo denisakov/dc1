@@ -1,4 +1,4 @@
-<h1>Documents</h1>
+<h1>Documents (<%= @documents.count %>)</h1>
 <div class="pagination pagination-mini">
 <%= will_paginate @documents, :previous_label => h("<"), :next_label => h(">"), :container => false %>
 </div>
@@ -9,7 +9,8 @@
       <th><%= sortable "title" %></th>
       <th><%= sortable "short_title" %></th>
       <th><%= sortable "process_type", "Process" %></th>
-      <th><%= sortable "issue_date", "Issue date" %></th>
+      <!-- <th><%= sortable "when_dates.date", "Issue date" %></th> -->
+      <th><%= sortable "when_dates.date", "Upload date" %></th>
       <th>Standard</th>
       <th><%= sortable "project_id", "Project ID" %></th>
       <th></th>
@@ -21,7 +22,16 @@
     <td><%= link_to document.title, document.link %></td>
     <td><%= link_to document.short_title, document.link %></td>
     <td><%= document.process_type %></td>
-    <td><%= document.when_dates.first.date_string %></td>
+    <% document.occasions.each do |o| %>
+      <% if o.description =~ /issue/i %>
+      <!--   <td><%= WhenDate.find(o.when_date_id).date_string %></td> -->
+      <% elsif o.description =~ /upload/i && WhenDate.find(o.when_date_id)%>
+        <td><%= WhenDate.find(o.when_date_id).date_string %>
+      <% else %>
+        <%= "?" %>
+        </td>
+      <% end %>
+    <% end %>
     <td><%= Standard.find_by_id(document.occasions.first.standard_id).short_name %></td>
     <td><%= document.project_id %></td>
     <td><%= link_to 'Show', document, :class => 'btn btn-mini' %></td>

@@ -49,7 +49,7 @@
 <p>
 	<b>Documents:</b>
 	<% @project.documents.each do |d| %>
-		<ul><%= link_to d.title, d.link %> (<%= d.issue_date_string %>)
+		<ul><%= link_to d.title, d.link %>
 		</ul>
 	<% end %>
 </p>
