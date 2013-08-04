@@ -1,7 +1,5 @@
 <h1>Occasions (<%= @occasions.count %>)</h1>
-<div class="pagination pagination_centered">
-<%= will_paginate @occasions, :previous_label => h("<"), :next_label => h(">"), :container => false %>
-</div>
+<%= will_paginate @occasions, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 <table class="table table-condensed table-hover">
   <tr>
     <th><%= sortable "description" %></th>
@@ -30,3 +28,4 @@
   </tr>
 <% end %>
 </table>
+<%= will_paginate @occasions, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>

@@ -1,9 +1,7 @@
 <%= @projects.count %> projects in the database
-<div class="row-fluid">
-  <div class="pagination span8 offset4">
-  <%= will_paginate @projects, :previous_label => h("<"), :next_label => h(">"), :container => false %>
-  </div>
-</div>
+
+<%= will_paginate @projects, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
@@ -45,8 +43,6 @@
             - <%= y.name %> <br />
           <% end %>
         <% end %>
-      <% else %>
-        <%= "" %>
       <% end %>
     </td>
     <td><%= link_to 'Edit', edit_project_path(p), :class => 'btn btn-mini' %></td>
@@ -54,11 +50,8 @@
 <% end %>
 </tbody>
 </table>
-<div class="row-fluid">
-  <div class="pagination span8 offset4">
-  <%= will_paginate @projects, :previous_label => h("<"), :next_label => h(">"), :container => false %>
-  </div>
-</div>
+
+<%= will_paginate @projects, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 
 <% content_for :title do %>Projects<% end %>
 <% content_for :description do %>My Description<% end %>

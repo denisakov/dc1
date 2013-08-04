@@ -1,5 +1,7 @@
 <h1>Standards</h1>
 
+<%= will_paginate @standards, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
@@ -25,3 +27,4 @@
   </tr>
 <% end %>
 </table>
+<%= will_paginate @standards, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
