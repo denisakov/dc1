@@ -14,6 +14,80 @@ namespace :crawl do
 		@agent = Mechanize.new
 		@agent.idle_timeout = 0.9
 		@r = 5
+	
+	def cdm_doe_link_finder
+		try = 1
+		begin
+			puts "Looking for new DOEs under CDM"
+			cdm_timeout = Timeout::timeout(20){
+				@agent.get("http://cdm.unfccc.int/DOE/list/index.html")
+			}
+			@agent.page.links[36..-1].each do |l|
+				cdm_doe_link = "http://cdm.unfccc.int/DOE/list/" + l.uri.to_s
+				if Webcrawl.where('url = ?', cdm_doe_link).first.blank? then
+					puts "That's a new one."
+					crawl = Webcrawl.create!(:url => cdm_doe_link, :source => "cdm_doe", :status_code => 1, :retries => @r)
+					puts cdm_doe_link
+				else
+					crawl = Webcrawl.where('url = ?', cdm_doe_link).first
+					crawl.status_code = 2
+					crawl.touch
+					crawl.save
+					puts "I've heard that one before."
+					puts cdm_doe_link
+				end
+			end
+		rescue Timeout::Error
+			if try > 0
+				puts "UNFCCC website doesn't respond, let's try again"
+				try -= 1
+				retry
+			else
+				sleep 10
+				retry
+			end
+		rescue SocketError => e
+			puts e.message
+			puts "Most probably the internet connection is gone!"
+		end
+	end
+	def vcs_doe_link_finder
+		try = 1
+		begin
+			puts "Looking for new DOEs under VCSA"
+			cdm_timeout = Timeout::timeout(20){
+				@agent.get("http://www.v-c-s.org/verification-validation/find-vvb")
+			}
+			@agent.page.at("tbody").children.each do |l|
+				vcs_doe_link = "http://www.v-c-s.org" + l.children[0].children[1].attributes["href"].to_s
+				if Webcrawl.where('url = ?', vcs_doe_link).first.blank? then
+					puts "That's a new one."
+					crawl = Webcrawl.create!(:url => vcs_doe_link, :source => "vcs_doe", :status_code => 1, :retries => @r)
+					puts vcs_doe_link
+				else
+					crawl = Webcrawl.where('url = ?', vcs_doe_link).first
+					crawl.status_code = 2
+					crawl.touch
+					crawl.save
+					puts "I've heard that one before."
+					puts vcs_doe_link
+				end
+			end
+
+		rescue Timeout::Error
+			if try > 0
+				puts "VCS website doesn't respond, let's try again"
+				try -= 1
+				retry
+			else
+				sleep 10
+				retry
+			end
+		rescue SocketError => e
+			puts e.message
+			puts "Most probably the internet connection is gone!"
+		end
+	end
 	def cdm_page_finder
 		try = 1
 		begin
@@ -285,13 +359,17 @@ namespace :crawl do
 				puts "No timeouts it seems, all done then!"
 			end
 	end
-	vcs_page_finder
-	vcs_link_collector
 	
-	cdm_page_finder
-	cdm_link_collector
+	cdm_doe_link_finder
+	vcs_doe_link_finder
 
-	markit_page_finder
-	markit_link_collector
+	# vcs_page_finder
+	# vcs_link_collector
+	
+	 cdm_page_finder
+	 cdm_link_collector
+	
+	#  markit_page_finder
+	#  markit_link_collector
 	end
 end

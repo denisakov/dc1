@@ -8,6 +8,8 @@ class WhenDate < ActiveRecord::Base
   has_many :documents, :through => :occasions
   has_many :occasions, :inverse_of => :standard
   has_many :standards, :through => :occasions
+  has_many :occasions, :inverse_of => :stakeholder
+  has_many :stakeholders, :through => :occasions
 
   require 'chronic'
 

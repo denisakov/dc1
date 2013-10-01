@@ -20,14 +20,40 @@
 	<% end %>
 </p>
 <p>
+	<b>Validating DOE:</b>
+	<% if !@project.entities.where(:role => "val_doe").first.blank? %>
+		<%= @project.entities.where(:role => "val_doe").first.stakeholder.title %>
+	<% else %>
+		<%= "Unknown" %>
+	<% end %>
+</p>
+<p>
+	<b>Verifying DOEs:</b>
+	<% if !@project.entities.where(:role => "ver_doe").first.blank? %>
+		<%= @project.entities.where(:role => "ver_doe").first.stakeholder.title %>
+	<% else %>
+		<%= "Unknown" %>
+	<% end %>
+</p>
+<p>
 	<b>Host country:</b>
 	<% if @project.roles.where(:role => "Host").first then %>
-      <td><%= @project.countries.where(:id => @project.roles.where(:role => "Host").first.country_id).first.name %></td>
+      <%= @project.countries.where(:id => @project.roles.where(:role => "Host").first.country_id).first.name %>
+      <% else %>
+      <%= "Unknown" %>
     <% end %>
 </p>
 <p>
+	<b>Project participants:</b>
+	<% if !@project.entities.where(:role => "host_pp").first %>
+		<%= @project.entities.where(:role => "host_pp").first.stakeholder.title %>
+	<% else %>
+		<%= "Unknown" %>
+	<% end %>
+</p>
+<p>
 	<b>Investor countries:</b>
-	<% if @project.roles.where(:role => "Investor") then %>
+	<% if !@project.roles.where(:role => "Investor").blank? then %>
         <% @project.roles.where(:role => "Investor").each do |x| %>
           <% @project.countries.where(:id => x.country_id).each do |y| %>
             <ul><%= y.name %></ul>

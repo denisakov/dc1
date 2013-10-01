@@ -1,0 +1,41 @@
+<h3>Companies</h3>
+
+<table class="table table-condensed table-hover">
+  <thead>
+    <tr>
+      <th>
+        <label class="checkbox">
+          <input type="checkbox" value="">
+        </label>
+      </th>
+      <th><small>Title</small></th>
+      <th><small>Short title</small></th>
+      <th><small>HQ country</small></th>
+      <th></th>
+      
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+
+<% @stakeholders.each do |stakeholder| %>
+  <tr>
+    <td>
+      <label class="checkbox">
+        <input type="checkbox" value="">
+      </label>
+    </td>
+    <td><%= link_to stakeholder.title, stakeholder %></td>
+    <td><%= stakeholder.short_title %></td>
+    <td><%= stakeholder.country.name %></td>
+    
+    <td><%= link_to 'Edit', edit_stakeholder_path(stakeholder) %></td>
+    <td><%= link_to 'Destroy', stakeholder, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+  </tr>
+<% end %>
+</tbody>
+</table>
+
+<br />
+
+<%= link_to 'New Stakeholder', new_stakeholder_path %>

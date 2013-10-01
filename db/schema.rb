@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130711161612) do
+ActiveRecord::Schema.define(:version => 20130821134314) do
 
   create_table "countries", :force => true do |t|
     t.string   "name"
@@ -32,6 +32,16 @@ ActiveRecord::Schema.define(:version => 20130711161612) do
 
   add_index "documents", ["project_id", "process_type"], :name => "index_documents_on_project_id_and_process_type"
 
+  create_table "entities", :force => true do |t|
+    t.string   "role"
+    t.integer  "project_id"
+    t.integer  "stakeholder_id"
+    t.datetime "created_at",     :null => false
+    t.datetime "updated_at",     :null => false
+  end
+
+  add_index "entities", ["project_id", "stakeholder_id"], :name => "index_entities_on_project_id_and_stakeholder_id"
+
   create_table "occasions", :force => true do |t|
     t.text     "description"
     t.integer  "project_id"
@@ -39,12 +49,13 @@ ActiveRecord::Schema.define(:version => 20130711161612) do
     t.integer  "when_date_id"
     t.integer  "document_id"
     t.integer  "standard_id"
-    t.datetime "created_at",   :null => false
-    t.datetime "updated_at",   :null => false
+    t.integer  "stakeholder_id"
+    t.datetime "created_at",     :null => false
+    t.datetime "updated_at",     :null => false
   end
 
   create_table "projects", :force => true do |t|
-    t.string   "title"
+    t.text     "title"
     t.text     "refno"
     t.text     "scale"
     t.integer  "fee"
@@ -61,6 +72,16 @@ ActiveRecord::Schema.define(:version => 20130711161612) do
   end
 
   add_index "roles", ["project_id", "country_id"], :name => "index_roles_on_project_id_and_country_id"
+
+  create_table "stakeholders", :force => true do |t|
+    t.string   "title"
+    t.string   "short_title"
+    t.integer  "country_id"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
+  end
+
+  add_index "stakeholders", ["country_id"], :name => "index_stakeholders_on_country_id"
 
   create_table "standards", :force => true do |t|
     t.string   "name"

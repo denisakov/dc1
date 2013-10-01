@@ -7,6 +7,7 @@ class CreateOccasions < ActiveRecord::Migration
       t.references :when_date
       t.references :document
       t.references :standard
+      t.references :stakeholder
 
       t.timestamps
     end

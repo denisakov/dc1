@@ -1,5 +1,11 @@
 Dc1::Application.routes.draw do
 
+  resources :entities
+
+
+  resources :stakeholders
+
+
   resources :occasions
 
 

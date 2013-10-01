@@ -11,7 +11,7 @@ namespace :crawl do
     @agent = Mechanize.new
 	@agent.idle_timeout = 0.9
 
-def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 2))
+def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3"], :status_code => 2))
  	puts "Updating the CDM project data"
 	webcrawls.each do |crawl|
 		begin
@@ -92,12 +92,16 @@ def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :st
 	end
 end
 
-def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 1))
+def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3"], :status_code => 1))
  	puts "Collecting new CDM projects"
 	webcrawls.each do |crawl|
 		begin
 			gsp_page_url = crawl.url
+
 			status = Timeout::timeout(20) {
+
+			if gsp_page_url =~ /cp=1/ then
+				
 				puts "Started"
 				page_html = open(gsp_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
 				gsp_page = Nokogiri::HTML(page_html)
@@ -136,17 +140,16 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					if !a.text.strip.empty? then
 						#Retreave the country name
 						cdm_host_country = a.children[1].text
-						puts "Found the country name"
+						puts "Host country is #{cdm_host_country}"
 						#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
 						doc_url = a.children[3]['href']
-						#Grab all the project participants
-						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
+
 						#set the role variable
 						role = "Host"
 						#set the process variable
 						process_type = "Registration"
 						#set the doc title; including the country name into doc's name for now.
-						doc_title = "Letter of Approval (" + cdm_host_country + ")"
+						doc_title = "Letter of Approval"
 						#set document short name
 						short_doc_title = "LoA"
 						#Define the issue date of the document
@@ -162,12 +165,33 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						@country ||= Country.create!(:name => cdm_host_country)
 						#Create a role for the country in the project
 						project.roles.build(:country_id => @country.id, :role => role)						
-						
+						project.save!
+						#Grab all the project participants
+						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\r\n\s*})
+
+						role = "host_pp"
+						define_pp(@country, project, role, host_pps)
+
+						#Find registering DOE
+						short_doe_name = gsp_page_url.gsub("http://cdm.unfccc.int/Projects/DB/", "").gsub("/view?cp=", "").gsub(/[\d]/,"").gsub("%", " ").gsub(".","")
+						doe_name_finder(short_doe_name)
+						doe_name = @a[1]
+
+						#Identify the stakeholder
+						stakeholder = Stakeholder.where('title = ?', doe_name).first
+
+						#Define the role of the Stakeholder in the project
+						role = "val_doe"
+
+						puts "#{stakeholder.id} #{doe_name} #{role}"
+
+						project.entities.build(:project_id => project.id, :stakeholder_id => stakeholder.id, :role => role)
+
 						#Create a document
 						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 
 						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Issue date of #{short_doc_title} by #{@country.name}", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						project.occasions.build(:description => "Issue date", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						
 						project.save!
 						puts "Host country is #{@country.name}"
@@ -222,7 +246,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						#Create a document
 						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Issue date of #{short_doc_title} by #{@country.name}", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						project.occasions.build(:description => "Issue date", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						project.save!
 
 						puts "#{doc_title}"
@@ -256,7 +280,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							#set the process variable
 							process_type = "Registration"
 							#set the doc title; including the country name into doc's name for now.
-							doc_title = "Letter of Approval (" + cdm_inv_country + ")"
+							doc_title = "Letter of Approval"
 							#set document short name
 							short_doc_title = "LoA"
 							#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
@@ -268,41 +292,57 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							#Write in the new date or return the one found above
 							date ||= WhenDate.create!(:date => issue_date)
 
-							if a.children[10] then
-								#Grab all the project participants
-								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip
-							else
-								host_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip
-							end
 							#Check if country name exists
 							country = Country.where('name = ?', cdm_inv_country).first
 							#Write in the new country names or return the one found above
 							country ||= Country.create!(:name => cdm_inv_country)
+
+							#Idenfify the project participants
+							if a.children[10] then
+								#Grab all the project participants
+								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\r\n\s*})
+							else
+								host_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\r\n\s*})
+							end
+
+							role = "a1_pp"
+							define_pp(country, project, role, host_pps)
+
 							#Create a role for the country in the project
 							project.roles.build(:country_id => country.id, :role => role)
 							#Create a document
 							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 
 							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Issue date of #{short_doc_title} by #{country.name}", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 
 							project.save!
 							puts "Investor country is #{country.name}"
 						end
 					end
 				end
-				
-				#Update the crawl record for the project page
-				crawl.update_attributes(:html => gsp_page_html.to_html, :project_id => project.id, :status_code => 2)
-				crawl.touch
-				crawl.save
-				
-				
-				associated_pages = Webcrawl.where('url like ?', "%#{gsp_page_url[0..-2]}%")
-				associated_pages.each do |x|
-					x.update_attributes(:project_id => project.id)
-					puts "Associated pages updated with project id #{project.id}"
-				end	
+			end
+
+			if gsp_page_url =~ /cp=2/ then
+				#
+				next
+			end
+
+			if gsp_page_url =~ /cp=3/ then
+				#
+				next
+			end
+
+			#Update the crawl record for the project page
+			crawl.update_attributes(:html => gsp_page_html.to_html, :project_id => project.id, :status_code => 2)
+			crawl.touch
+			crawl.save
+			
+			associated_pages = Webcrawl.where('url like ?', "%#{gsp_page_url[0..-2]}%")
+			associated_pages.each do |x|
+				x.update_attributes(:project_id => project.id)
+				puts "Associated pages updated with project id #{project.id}"
+			end
 			}
 		rescue Timeout::Error
 			if crawl.retries > 0
@@ -879,17 +919,509 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 		@timed_out = []
 		#Calling the same method but only with the timed out pages
 		mark_new_page_crawler(webcrawls)
-	#No timeouts
+		#No timeouts
 	else
 		puts "Moving on."
 	end
 end
 
+def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status_code => 2))
+ 	puts "Collecting new CDM DOEs"
+	webcrawls.each do |crawl|
+		begin
+			cdm_doe_page_url = crawl.url
+
+			puts "#{cdm_doe_page_url}"
+
+			status = Timeout::timeout(20) {
+				page_html = open(cdm_doe_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+				doe_page = Nokogiri::HTML(page_html)
+				doe_page_html = doe_page.css("html body div#container div#content div#cols div#main").children[7].children[1].children[1]
+				#Retrive the DOE ID and the Name
+				cdm_doe_id_name = doe_page_html.children[0].children[2].children[1].children[0].text
+
+				puts "#{cdm_doe_id_name}"
+
+				#Retrieve only the name
+				cdm_doe_name = cdm_doe_id_name[cdm_doe_id_name.index(".")+2..-1]
+				puts "#{cdm_doe_name}"
+				
+				#Find short and long names of DOE
+				doe_name_finder(cdm_doe_name)				
+				short_doe_name = @a[0]
+				doe_name = @a[1]
+				puts "#{doe_name}, #{short_doe_name}"
+
+				#Find the validation and verification scopes of accreditation
+				#cdm_doe_val_scope = doe_page_html.children[2].children[2].children[1].children[0].text
+				#cdm_doe_ver_scope = doe_page_html.children[2].children[2].children[4].children[0].text
+
+				#Find the city/county
+				#cdm_doe_city = doe_page_html.children[3].children[2].children[3].children[0].text
+
+				#Find the postal code
+				#cdm_doe_postal = doe_page_html.children[3].children[2].children[13].children[0].text
+
+				#Find the postal address
+				#cdm_doe_address = doe_page_html.children[3].children[2].children[18].children[0].text
+
+				#Find the contact details
+				#cdm_doe_contact = doe_page_html.children[4].children[2].children.text.gsub(/\s{2,}/," ").strip
+
+				#Retreave the country of DOE's location
+				if !doe_page_html.children[3].children[2].children[8].nil?
+					if doe_page_html.children[3].children[2].children[6].children[0].text == "Postal Address: "
+						doe_country = "China"
+					else
+						doe_country = doe_page_html.children[3].children[2].children[8].children[0].text
+					end
+				else
+					doe_country = "Republic of Korea"
+				end
+				puts "#{doe_country}"
+
+				#Check if country name exists
+				@country = Country.where('name = ?', doe_country).first
+				#Write in the new country names or return the one found above
+				@country ||= Country.create!(:name => doe_country)				
+				
+				#Check if stakeholder exists
+				stakeholder = Stakeholder.where('title = ? and country_id = ?', doe_name, @country.id).first
+				#Create a new DOE if it doesn't exist yet
+				stakeholder ||= Stakeholder.create!(:title => doe_name, :short_title => short_doe_name, :country_id => @country.id)
+
+				#Update the crawl record for the project page
+				crawl.update_attributes(:html => doe_page_html.to_html, :status_code => 2)
+				crawl.touch
+				crawl.save
+			}
+		rescue Timeout::Error
+			if crawl.retries > 0
+				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
+				#Increase the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts crawl.url
+				#Constant timeout status is 4
+				crawl.status_code = 4
+				crawl.touch
+				crawl.save
+			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
+		end
+		if !@timed_out.empty? then
+			puts "There were some timeouts."
+			#Selecting all pages with timeouts so far
+			webcrawls = Webcrawl.find(@timed_out)
+			#Empty the timeout for next time
+			@timed_out = []
+			#Calling the same method but only with the timed out pages
+			new_cdm_doe_crawler(webcrawls)
+			#No timeouts
+		else
+			puts "Moving on."
+		end
+	end
+end
+
+def new_vcs_doe_crawler(webcrawls = Webcrawl.where(:source => "vcs_doe", :status_code => 2))
+ 	puts "Collecting new VCS DOEs"
+	webcrawls.each do |crawl|
+		begin
+			vcs_doe_page_url = crawl.url
+			puts "#{vcs_doe_page_url}"
+			status = Timeout::timeout(20) {
+				@agent.get(vcs_doe_page_url)
+				@agent.page.encoding = 'ISO-8859-1'
+				@agent.page.encoding = 'cp1252'
+				doe_page_html = @agent.page.search("html body div#content")
+				
+				#Find the ID number for VCS DOE
+				#vcs_doe_id = @agent.page.search(".region .region-content").children[3].children[1].children[1].children[1].children[1].children[1].children[1].children[3].children[0].text
+
+				#Find the contact details
+				#vcs_doe_contact = @agent.page.search(".region .region-content").children[3].children[1].children[1].children[1].children[1].children[1].children[3].children[3].children[0].text.gsub(/\s{2,}/," ").strip
+
+				
+				#Find VCS DOE' website address
+				#vcs_doe_website = @agent.page.search(".region .region-content").children[3].children[1].children[1].children[1].children[1].children[1].children[7].children[3].children[0].text.gsub(/\s{2,}/," ").strip
+
+				#Find VCS DOE's accreditation body
+				#vcs_doe_accr = @agent.page.search(".region .region-content").children[3].children[1].children[1].children[1].children[1].children[1].children[9].children[3].children[0].text.gsub(/\s{2,}/," ").strip
+
+				#Retrieve only the name
+				vcs_doe_name = @agent.page.search(".title").children[0].text
+
+				puts "#{vcs_doe_name}"
+
+				#Find short and long names of DOE
+				doe_name_finder(vcs_doe_name)				
+				short_doe_name = @a[0]
+				doe_name = @a[1]
+				puts "#{doe_name}, #{short_doe_name}"
+
+				#Find the validation and verification scopes of accreditation
+				#vcs_doe_val_scope = @agent.page.search("div#block-views-vvb-accreditations-block .views-table tbody .views-field-field-sectoral-scope").text.gsub(/\s{2,}/," ").strip
+				#vcs_doe_ver_scope = @agent.page.search("div#block-views-vvb-accreditations-block-1 .views-table tbody .views-field-field-sectoral-scope").text.gsub(/\s{2,}/," ").strip
+
+				#Find DOE's location
+				vcs_doe_location = @agent.page.search(".region .region-content").children[3].children[1].children[1].children[1].children[1].children[1].children[5].children[3].children[0].text.gsub(/\s{2,}/," ").strip
+
+				puts "#{vcs_doe_location}"
+
+				doe_country = "Unknown"
+
+				#Retreave the country of DOE's location
+				country_list = Country.all
+				country_list.each do |c|
+					if vcs_doe_location.include? c.name.to_s
+						doe_country = c.name.to_s
+						#puts "found it! #{c.name.to_s}"
+					end
+				end
+
+				puts "#{doe_country}"
+
+				#Check if country name exists
+				@country = Country.where('name = ?', doe_country).first
+				#Write in the new country names or return the one found above
+				@country ||= Country.create!(:name => doe_country)				
+				
+				#Check if stakeholder exists
+				stakeholder = Stakeholder.where('title = ?', doe_name).first
+				#Create a new DOE if it doesn't exist yet
+				stakeholder ||= Stakeholder.create!(:title => doe_name, :short_title => short_doe_name, :country_id => @country.id)
+
+				#Update the crawl record for the project page
+				crawl.update_attributes(:html => doe_page_html.to_html, :status_code => 2)
+				crawl.touch
+				crawl.save
+			}
+		rescue Timeout::Error
+			if crawl.retries > 0
+				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
+				#Increase the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts crawl.url
+				#Constant timeout status is 4
+				crawl.status_code = 4
+				crawl.touch
+				crawl.save
+			end
+		rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
+		end
+		if !@timed_out.empty? then
+			puts "There were some timeouts."
+			#Selecting all pages with timeouts so far
+			webcrawls = Webcrawl.find(@timed_out)
+			#Empty the timeout for next time
+			@timed_out = []
+			#Calling the same method but only with the timed out pages
+			vcs_new_page_crawler(webcrawls)
+			#No timeouts
+		else
+			puts "Moving on."
+		end
+	end
+end
+
+def doe_name_finder(name)
+	
+	if name =~ /DNV|Det Norske Veritas Climate Change Services/ then
+		short_doe_name = "DNV"
+		doe_name = "Det Norske Veritas Climate Change Services AS"
+	end
+	if name =~ /TUEV-R|Rheinland \u0028China\u0029/ then
+		short_doe_name = "T" + "\u00dc" + "VRHEIN"
+		doe_name = "T" + "\u00dc" + "V Rheinland (China), Ltd."
+	end
+	if name =~ /Rheinland Energie|Rheinland Energie/ then
+		short_doe_name = "T" + "\u00dc" + "VREU"
+		doe_name = "T" + "\u00dc" + "V Rheinland Energie und Umwelt GmbH"
+		doe_country = "Germany"
+	end
+	if name =~ /TUEV-SUED|South Asia Private|Industrie Service GmbH/ then
+		short_doe_name = "T" + "\u00dc" + "V S" + "\u00dc" + "D"
+		doe_name = "T" + "\u00dc" + "V S" + "\u00dc" + "D South Asia Private Ltd. (formerly T" + "\u00dc" + "V S" + "\u00dc" + "D Industrie Service GmbH)"
+	end
+	if name =~ /RWTUV|NORD CERT|T\u00dcV NORD|Nord Cert GmbH/ then
+		short_doe_name = "T" + "\u00dc" + "VNORD"
+		doe_name = "T" + "\u00dc" + "V NORD CERT GmbH"
+	end
+	if name =~ /SGS/ then
+		short_doe_name = "SGS"
+		doe_name = "SGS United Kingdom, Ltd."
+	end
+	if name =~ /AENOR|Spanish Association for Standardisation/ then
+		short_doe_name = "AENOR"
+		doe_name = "Spanish Association for Standardisation and Certification"
+	end
+	if name =~ /BVQI|Bureau Veritas/ then
+		short_doe_name = "BVCH"
+		doe_name = "Bureau Veritas Certification Holding SAS"
+	end
+	if name =~ /KEMCO|Korea Energy Management Corporation/ then
+		short_doe_name = "KEMCO"
+		doe_name = "Korea Energy Management Corporation"
+	end
+	if name =~ /JQA|Japan Quality Assurance Organisation/ then
+		short_doe_name = "JQA"
+		doe_name = "Japan Quality Assurance Organisation"
+	end
+	if name =~ /KPMG/ then
+		short_doe_name = "KPMG"
+		doe_name = "KPMG Performance Registrar, Inc."
+	end
+	if name =~ /JACO/ then
+		short_doe_name = "JACO"
+		doe_name = "JACO CDM, Ltd."
+	end
+	if name =~ /JCI|Japan Consulting Institute/ then
+		short_doe_name = "JCI"
+		doe_name = "Japan Consulting Institute"
+	end
+	if name =~ /LRQA|Lloyd s Register/ then
+		short_doe_name = "LRQA"
+		doe_name = "Lloyd's Register Quality Assurance, Ltd."
+	end
+	if name =~ /ICONTEC|Colombian Institute for Technical Standards/ then
+		short_doe_name = "ICONTEC"
+		doe_name = "Colombian Institute for Technical Standards and Certification"
+	end
+	if name =~ /KFQ|Korean Foundation for Quality/ then
+		short_doe_name = "KFQ"
+		doe_name = "Korean Foundation for Quality"
+	end
+	if name =~ /SQS|Swiss Association for Quality/ then
+		short_doe_name = "SQS"
+		doe_name = "Swiss Association for Quality and Management Systems"
+	end
+	if name =~ /PJR|PJRCES|Perry Johnson/ then
+		short_doe_name = "PJRCES"
+		doe_name = "Perry Johnson Registrars Carbon Emissions Services"
+	end
+	if name =~ /KECO|Korea Environment Corporation/ then
+		short_doe_name = "KECO"
+		doe_name = "Korea Environment Corporation"
+	end
+	if name =~ /KBS/ then
+		short_doe_name = "KBS"
+		doe_name = "KBS Certification Services Pvt., Ltd."
+	end
+	if name =~ /HKQAA|Hong Kong Quality Assurance/ then
+		short_doe_name = "HKQAA"
+		doe_name = "Hong Kong Quality Assurance Agency"
+	end
+	if name =~ /URS/ then
+		short_doe_name = "URS"
+		doe_name = "URS Verification Private, Ltd."
+	end
+	if name =~ /KTR|Korea Testing|KTDCert/ then
+		short_doe_name = "KTR"
+		doe_name = "Korea Testing and Research Institute"
+	end
+	if name =~ /RINA/ then
+		short_doe_name = "RINA"
+		doe_name = "RINA Services S.p.A."
+	end
+	if name =~ /ERM Certification|ERM-CVS/ then
+		short_doe_name = "ERM-CVS"
+		doe_name = "ERM Certification and Verification Services, Ltd."
+	end
+	if name =~ /ReConsult|Re-consult|re-consult/ then
+		short_doe_name = "RC"
+		doe_name = "Re-consult, Ltd."
+	end
+	if name =~ /China Quality|CQC/ then
+		short_doe_name = "CQC"
+		doe_name = "China Quality Certification Center"
+	end
+	if name =~ /SIRIM/ then
+		short_doe_name = "SIRIM"
+		doe_name = "SIRIM Quality Assurance Services International Sdn. Bhd."
+	end
+	if name =~ /CEC|China Environmental United/ then
+		short_doe_name = "CEC"
+		doe_name = "China Environmental United Certification Center Co., Ltd. "
+	end
+	if name =~ /JMA|Japan Management Association/ then
+		short_doe_name = "JMA"
+		doe_name = "Japan Management Association"
+	end
+	if name =~ /TECO|Deloitte/ then
+		short_doe_name = "DTECO"
+		doe_name = "Deloitte Tohmatsu Evaluation and Certification Organization"
+	end
+	if name =~ /GLC|Germanischer/ then
+		short_doe_name = "GLC"
+		doe_name = "Germanischer Lloyd Certification GmbH"
+	end
+	if name =~ /Applus|LGAI|Applus+/ then
+		short_doe_name = "LGAI"
+		doe_name = "LGAI Technological Center, S.A."
+	end
+	if name =~ /ErnstYoung|Ernst & Young|EYG/ then
+		short_doe_name = "EYG"
+		doe_name = "Ernst & Young Associ" + "\u00e9" + "s"
+	end
+	if name =~ /CEPREI/ then
+		short_doe_name = "CEPREI"
+		doe_name = "CEPREI certification body"
+	end
+	if name =~ /CCSC|China Classification/ then
+		short_doe_name = "CCSC"
+		doe_name = "China Classification Society Certification Company"
+	end
+	if name =~ /Korean Standards|KSA/ then
+		short_doe_name = "KSA"
+		doe_name = "Korean Standards Association"
+	end
+	if name =~ /emc/ then
+		short_doe_name = "EMC"
+		doe_name = "Environmental Management Corporation"
+		doe_country = "South Korea"
+	end
+	if name =~ /BSI/ then
+		short_doe_name = "BSI"
+		doe_name = "BSI Management Systems"
+		doe_country = "United Kingdom of Great Britain and Northern Ireland"
+	end
+	if name =~ /CRA|Conestoga/ then
+		short_doe_name = "CRA"
+		doe_name = "Conestoga-Rovers and Associates, Ltd."
+		doe_country = "Canada"
+	end
+	if name =~ /ICFRE|Indian Council/ then
+		short_doe_name = "ICFRE"
+		doe_name = "Indian Council of Forestry Research and Education"
+	end
+	if name =~ /Carbon Check|CarbonCheck/ then
+		short_doe_name = "CC"
+		doe_name = "Carbon Check (Pty), Ltd."
+	end
+	if name =~ /IBOPE/ then
+		short_doe_name = "IBOPE"
+		doe_name = "IBOPE Instituto Brasileiro de Opini"+"\u00e3"+"o P"+"\u00fa"+"blica e Estat"+"\u00ed"+"stica, Ltda."
+	end
+	if name =~ /MASCI|Foundation for Industrial/ then
+		short_doe_name = "MASCI"
+		doe_name = "Foundation for Industrial Development"
+	end
+	if name =~ /KR|Korean Register/ then
+		short_doe_name = "KR"
+		doe_name = "Korean Register of Shipping"
+	end
+	if name =~ /CTI/ then
+		short_doe_name = "CTI"
+		doe_name = "Shenzhen CTI International Certification Co., Ltd."
+	end
+	if name =~ /Ecocert/ then
+		short_doe_name = "EC"
+		doe_name = "Ecocert S.A."
+		doe_country = "France"
+	end
+	if name =~ /Environmental Services, Inc./ then
+		short_doe_name = "ES"
+		doe_name = "Environmental Services, Inc."
+	end
+	if name =~ /First Environment/ then
+		short_doe_name = "FE"
+		doe_name = "First Environment, Inc."
+	end
+	if name =~ /NSF International/ then
+		short_doe_name = "NSFISR"
+		doe_name = "NSF International Strategic Registrations, Ltd."
+	end
+	if name =~ /Rainforest/ then
+		short_doe_name = "RA"
+		doe_name = "Rainforest Alliance, Inc."
+	end
+	if name =~ /Ruby/ then
+		short_doe_name = "RCE"
+		doe_name = "Ruby Canyon Engineering, Inc."
+	end
+	if name =~ /SCS Global/ then
+		short_doe_name = "SCS"
+		doe_name = "SCS Global Services"
+	end
+	if name =~ /Stantec/ then
+		short_doe_name = "SC"
+		doe_name = "Stantec Consulting"
+	end
+	# if name =~ // then
+	# 	short_doe_name = ""
+	# 	doe_name = ""
+	# end
+	
+	@a = Array.new
+	@a << short_doe_name
+	@a << doe_name
+end
+
+def define_pp(country, project, role, hash = {})
+	hash.each do |c|
+		pp_name = c
+		if c =~ /\u0028withdrawn\u0029/ then
+			pp_name = c.gsub(" (withdrawn)", "")
+		end
+		#Check if stakeholder exists
+		stakeholder = Stakeholder.where('title = ?', pp_name).first
+		#Create a new DOE if it doesn't exist yet
+		stakeholder ||= Stakeholder.create!(:title => pp_name, :country_id => country.id)
+
+		project.entities.build(:project_id => project.id, :stakeholder_id => stakeholder.id, :role => role)
+		project.save!
+		puts "Stakeholder #{stakeholder.title} was connected to the project #{project.id} as #{role}"
+	end
+end
+
+# new_cdm_doe_crawler
+# new_vcs_doe_crawler
+
 #vcs_update_page_crawler
 #vcs_new_page_crawler
 #markit_update_page_crawler
-markit_new_page_crawler
-#cdm_new_page_crawler
+#markit_new_page_crawler
+cdm_new_page_crawler
 #cdm_update_page_crawler
 
 if !Webcrawl.where(:status_code => 4).empty? then
