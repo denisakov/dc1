@@ -21,7 +21,7 @@
 </p>
 <p>
 	<b>Validating DOE:</b>
-	<% if !@project.entities.where(:role => "val_doe").first.blank? %>
+	<% if @project.entities.where(:role => "val_doe").first %>
 		<%= @project.entities.where(:role => "val_doe").first.stakeholder.title %>
 	<% else %>
 		<%= "Unknown" %>
@@ -29,7 +29,7 @@
 </p>
 <p>
 	<b>Verifying DOEs:</b>
-	<% if !@project.entities.where(:role => "ver_doe").first.blank? %>
+	<% if @project.entities.where(:role => "ver_doe").first %>
 		<%= @project.entities.where(:role => "ver_doe").first.stakeholder.title %>
 	<% else %>
 		<%= "Unknown" %>
@@ -45,7 +45,7 @@
 </p>
 <p>
 	<b>Project participants:</b>
-	<% if !@project.entities.where(:role => "host_pp").first %>
+	<% if @project.entities.where(:role => "host_pp").first %>
 		<%= @project.entities.where(:role => "host_pp").first.stakeholder.title %>
 	<% else %>
 		<%= "Unknown" %>

@@ -1,7 +1,7 @@
 class CreateDocuments < ActiveRecord::Migration
   def change
     create_table :documents do |t|
-      t.string :title
+      t.text :title
       t.string :short_title
       t.integer :version
       t.text :link

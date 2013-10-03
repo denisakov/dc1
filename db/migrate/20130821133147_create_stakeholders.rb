@@ -1,7 +1,7 @@
 class CreateStakeholders < ActiveRecord::Migration
   def change
     create_table :stakeholders do |t|
-      t.string :title
+      t.text :title
       t.string :short_title
       t.references :country
 

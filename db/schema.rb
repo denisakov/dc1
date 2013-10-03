@@ -20,7 +20,7 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
   end
 
   create_table "documents", :force => true do |t|
-    t.string   "title"
+    t.text     "title"
     t.string   "short_title"
     t.integer  "version"
     t.text     "link"
@@ -74,7 +74,7 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
   add_index "roles", ["project_id", "country_id"], :name => "index_roles_on_project_id_and_country_id"
 
   create_table "stakeholders", :force => true do |t|
-    t.string   "title"
+    t.text     "title"
     t.string   "short_title"
     t.integer  "country_id"
     t.datetime "created_at",  :null => false
@@ -84,7 +84,7 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
   add_index "stakeholders", ["country_id"], :name => "index_stakeholders_on_country_id"
 
   create_table "standards", :force => true do |t|
-    t.string   "name"
+    t.text     "name"
     t.integer  "project_id"
     t.string   "short_name"
     t.datetime "created_at", :null => false

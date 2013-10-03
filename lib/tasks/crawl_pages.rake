@@ -925,7 +925,7 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 	end
 end
 
-def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status_code => 2))
+def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status_code => 1))
  	puts "Collecting new CDM DOEs"
 	webcrawls.each do |crawl|
 		begin
@@ -1043,7 +1043,7 @@ def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status
 	end
 end
 
-def new_vcs_doe_crawler(webcrawls = Webcrawl.where(:source => "vcs_doe", :status_code => 2))
+def new_vcs_doe_crawler(webcrawls = Webcrawl.where(:source => "vcs_doe", :status_code => 1))
  	puts "Collecting new VCS DOEs"
 	webcrawls.each do |crawl|
 		begin
@@ -1219,7 +1219,7 @@ def doe_name_finder(name)
 		short_doe_name = "JCI"
 		doe_name = "Japan Consulting Institute"
 	end
-	if name =~ /LRQA|Lloyd s Register/ then
+	if name =~ /LRQA|Register Quality Assurance/ then
 		short_doe_name = "LRQA"
 		doe_name = "Lloyd's Register Quality Assurance, Ltd."
 	end
@@ -1400,7 +1400,7 @@ end
 def define_pp(country, project, role, hash = {})
 	hash.each do |c|
 		pp_name = c
-		if c =~ /\u0028withdrawn\u0029/ then
+		if c =~ /\u0028withdrawn\u0029|\u0028 withdrawn\u0029/ then
 			pp_name = c.gsub(" (withdrawn)", "")
 		end
 		#Check if stakeholder exists
@@ -1414,11 +1414,11 @@ def define_pp(country, project, role, hash = {})
 	end
 end
 
-# new_cdm_doe_crawler
-# new_vcs_doe_crawler
+new_cdm_doe_crawler
+new_vcs_doe_crawler
 
 #vcs_update_page_crawler
-#vcs_new_page_crawler
+# vcs_new_page_crawler
 #markit_update_page_crawler
 #markit_new_page_crawler
 cdm_new_page_crawler
