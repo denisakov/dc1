@@ -1,23 +1,24 @@
-<h1>Countries</h1>
-
 <table class="table table-condensed table-hover">
-  <tr>
-    <th><%= sortable "name" %></th>
-    <th><%= sortable "# of projects" %></th>
-    <th></th>
-    <th></th>
-    <th></th>
-  </tr>
-
-<% @countries.each do |country| %>
-  <tr>
-    <td><%= country.name %></td>
-    <td><%= country.projects.count %></td>
-    <td><%= link_to 'Show', country %></td>
-    <td><%= link_to 'Edit', edit_country_path(country) %></td>
-    <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-  </tr>
-<% end %>
+  <thead>
+    <tr>
+      <th><small><%= sortable "name" %></small></th>
+      <th><small><%= sortable "# of projects" %></small></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @countries.each do |country| %>
+      <tr>
+        <td><%= country.name %></td>
+        <td><%= country.projects.count %></td>
+        <td><%= link_to 'Show', country %></td>
+        <td><%= link_to 'Edit', edit_country_path(country) %></td>
+        <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
 </table>
 
 <br />

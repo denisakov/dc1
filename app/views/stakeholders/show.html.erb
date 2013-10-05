@@ -1,18 +1,28 @@
 <p id="notice"><%= notice %></p>
 
 <p>
-  <b>Title:</b>
-  <%= @stakeholder.title %>
+	<b>Title:</b>
+	<%= @stakeholder.title %>
 </p>
 
 <p>
-  <b>Short title:</b>
-  <%= @stakeholder.short_title %>
+	<b>Short title:</b>
+	<%= @stakeholder.short_title %>
 </p>
 
 <p>
-  <b>HQ country:</b>
-  <%= @stakeholder.country.name %>
+	<b>Auth. country:</b>
+	<%= @stakeholder.country.name %>
+</p>
+<p>
+	<b>Projects:</b>
+	<% @stakeholder.projects.each do |p| %>
+		<% if p.refno then %>
+			<small><%= link_to p.refno, project_path(p) %>, </small>
+		<% else %>
+			<%= "None" %>
+		<% end %>
+	<% end %>
 </p>
 
 

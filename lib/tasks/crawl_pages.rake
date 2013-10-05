@@ -167,7 +167,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 						project.roles.build(:country_id => @country.id, :role => role)						
 						project.save!
 						#Grab all the project participants
-						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\r\n\s*})
+						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
 
 						role = "host_pp"
 						define_pp(@country, project, role, host_pps)
@@ -263,9 +263,9 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 							#Define the investor country name
 							cdm_inv_country = a.children[1].text
 							#Special check for Canada, because it has withdrawn from KP
-							#if !ic.index(/[,.]/).nil? then
-							#	ic = ic[0..ic.index(/[,.]/)-1]
-							#end
+							if !cdm_inv_country.index(/[,.]/).nil? then
+								cdm_inv_country = cdm_inv_country[0..cdm_inv_country.index(/[,.]/)-1]
+							end
 							#Define if the country involved directly or not, UNUSED FOR NOW IN DATABASE
 							if a.text.strip =~ /involved/ then
 								if a.text.strip =~ /indirectly/
@@ -276,7 +276,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 							end
 							inv_country_role ||= "Unknown"
 							#Define the role of the country
-							role = "Investor"
+							country_role = "Investor"
 							#set the process variable
 							process_type = "Registration"
 							#set the doc title; including the country name into doc's name for now.
@@ -293,23 +293,25 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 							date ||= WhenDate.create!(:date => issue_date)
 
 							#Check if country name exists
-							country = Country.where('name = ?', cdm_inv_country).first
+							country = Country.where('name like ?', cdm_inv_country).first
 							#Write in the new country names or return the one found above
 							country ||= Country.create!(:name => cdm_inv_country)
+
+							#Create a role for the country in the project
+							project.roles.build(:country_id => country.id, :role => country_role)
 
 							#Idenfify the project participants
 							if a.children[10] then
 								#Grab all the project participants
-								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\r\n\s*})
+								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
 							else
-								host_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\r\n\s*})
+								host_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
 							end
 
-							role = "a1_pp"
-							define_pp(country, project, role, host_pps)
+							pp_role = "a1_pp"
+							define_pp(country, project, pp_role, host_pps)
 
-							#Create a role for the country in the project
-							project.roles.build(:country_id => country.id, :role => role)
+							
 							#Create a document
 							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 
@@ -978,10 +980,14 @@ def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status
 				else
 					doe_country = "Republic of Korea"
 				end
+
+				# if doe_country == "United States" then
+				# 	doe_country = "United States of America"
+				# end
 				puts "#{doe_country}"
 
 				#Check if country name exists
-				@country = Country.where('name = ?', doe_country).first
+				@country = Country.where('name like ?', doe_country).first
 				#Write in the new country names or return the one found above
 				@country ||= Country.create!(:name => doe_country)				
 				
@@ -1399,9 +1405,9 @@ end
 
 def define_pp(country, project, role, hash = {})
 	hash.each do |c|
-		pp_name = c
-		if c =~ /\u0028withdrawn\u0029|\u0028 withdrawn\u0029/ then
-			pp_name = c.gsub(" (withdrawn)", "")
+		pp_name = c.to_s
+		if c =~ /\u0028withdrawn\u0029|\u0028 withdrawn\u0029|\u0028 withdrawn \u0029|\u0028withdrawn\u0029/ then
+			pp_name = c.gsub(" (withdrawn)", "").gsub("(withdrawn)", "").gsub("( withdrawn)", "").gsub("(withdrawn) ", "").gsub("(withdrawn )", "").gsub("( withdrawn )", "").strip
 		end
 		#Check if stakeholder exists
 		stakeholder = Stakeholder.where('title = ?', pp_name).first
@@ -1418,7 +1424,7 @@ new_cdm_doe_crawler
 new_vcs_doe_crawler
 
 #vcs_update_page_crawler
-# vcs_new_page_crawler
+#vcs_new_page_crawler
 #markit_update_page_crawler
 #markit_new_page_crawler
 cdm_new_page_crawler

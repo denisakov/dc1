@@ -1,5 +1,3 @@
-<h3>Companies</h3>
-
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
@@ -11,6 +9,7 @@
       <th><small>Title</small></th>
       <th><small>Short title</small></th>
       <th><small>HQ country</small></th>
+      <th><small>No. of projects</small></th>
       <th></th>
       
       <th></th>
@@ -28,7 +27,7 @@
     <td><%= link_to stakeholder.title, stakeholder %></td>
     <td><%= stakeholder.short_title %></td>
     <td><%= stakeholder.country.name %></td>
-    
+    <td><%= stakeholder.projects.count %></td>
     <td><%= link_to 'Edit', edit_stakeholder_path(stakeholder) %></td>
     <td><%= link_to 'Destroy', stakeholder, method: :delete, data: { confirm: 'Are you sure?' } %></td>
   </tr>
