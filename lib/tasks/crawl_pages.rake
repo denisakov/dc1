@@ -11,7 +11,7 @@ namespace :crawl do
     @agent = Mechanize.new
 	@agent.idle_timeout = 0.9
 
-def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3"], :status_code => 2))
+def cdm_gsp_page_updater(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 2))
  	puts "Updating the CDM project data"
 	webcrawls.each do |crawl|
 		begin
@@ -92,7 +92,7 @@ def cdm_update_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cd
 	end
 end
 
-def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3"], :status_code => 1))
+def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 1))
  	puts "Collecting new CDM projects"
 	webcrawls.each do |crawl|
 		begin
@@ -100,9 +100,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 
 			status = Timeout::timeout(20) {
 
-			if gsp_page_url =~ /cp=1/ then
-				
-				puts "Started"
+				puts "Started on #{gsp_page_url}"
 				page_html = open(gsp_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
 				gsp_page = Nokogiri::HTML(page_html)
 				gsp_page_html = gsp_page.css("html body div#container div#content div#cols div#main")
@@ -114,17 +112,23 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 				cdm_proj_title = cdm_proj_id_title[cdm_proj_id_title.index(":")+1..cdm_proj_id_title.length].strip
 
 				#Find if the scale is the number 5 or number 6
-				if gsp_page_html.css("tr:nth-child(5) th").inner_text.strip == "Activity Scale"
+				if gsp_page_html.css("tr:nth-child(4) th").inner_text.strip == "Bilateral and Multilateral Funds"
+					#Grab the sectoral scope
+					cdm_scope = gsp_page_html.css("tr:nth-child(5) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 					#Grab the project scale
-					cdm_proj_scale = gsp_page_html.css("tr:nth-child(5) td").text.strip.capitalize!
-				else
 					cdm_proj_scale = gsp_page_html.css("tr:nth-child(6) td").text.strip.capitalize!
-				end
-				#Retreave the fee amount
-				cdm_fee = gsp_page_html.css("tr:nth-child(8) span").text
-				if cdm_fee.empty? then
+					#Grab the methodologies used
+					cdm_meths = gsp_page_html.css("tr:nth-child(7) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+					#Retreave the fee amount
+					cdm_fee = gsp_page_html.css("tr:nth-child(8) span").text
+				else
+					cdm_scope = gsp_page_html.css("tr:nth-child(4) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+					cdm_proj_scale = gsp_page_html.css("tr:nth-child(5) td").text.strip.capitalize!
+					cdm_meths = gsp_page_html.css("tr:nth-child(6) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 					cdm_fee = gsp_page_html.css("tr:nth-child(9) span").text
+					
 				end
+				
 				#Create a new project record
 				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => cdm_proj_scale, :fee => cdm_fee)
 				puts "created a project"
@@ -249,8 +253,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 						project.occasions.build(:description => "Issue date", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 						project.save!
 
-						puts "#{doc_title}"
-						puts "#{doc_url}"
+						puts "#{doc_title} | #{doc_url}"
 					end
 				end
 				
@@ -267,14 +270,14 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 								cdm_inv_country = cdm_inv_country[0..cdm_inv_country.index(/[,.]/)-1]
 							end
 							#Define if the country involved directly or not, UNUSED FOR NOW IN DATABASE
-							if a.text.strip =~ /involved/ then
-								if a.text.strip =~ /indirectly/
-									inv_country_role = "indirectly"
-								else
-									inv_country_role = "directly"
-								end
-							end
-							inv_country_role ||= "Unknown"
+							# if a.text.strip =~ /involved/ then
+							# 	if a.text.strip =~ /indirectly/
+							# 		inv_country_role = "indirectly"
+							# 	else
+							# 		inv_country_role = "directly"
+							# 	end
+							# end
+							# inv_country_role ||= "Unknown"
 							#Define the role of the country
 							country_role = "Investor"
 							#set the process variable
@@ -315,7 +318,7 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 							#Create a document
 							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 
-							#Create an occasion for the date in the project, country, document and standard
+							#Create an occasion for the Document
 							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
 
 							project.save!
@@ -323,29 +326,22 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 						end
 					end
 				end
-			end
 
-			if gsp_page_url =~ /cp=2/ then
-				#
-				next
-			end
+				gsp_page_html.css("tr:nth-child(1)").children[2].children.each do |a|
+				end
 
-			if gsp_page_url =~ /cp=3/ then
-				#
-				next
-			end
+				#Update the crawl record for the project page
+				crawl.update_attributes(:html => gsp_page_html.to_html, :project_id => project.id, :status_code => 2)
+				crawl.touch
+				crawl.save
+				
+				associated_pages = Webcrawl.where('url like ?', "%#{gsp_page_url[0..-2]}%")
+				associated_pages.each do |x|
+					x.update_attributes(:project_id => project.id)
+					puts "Associated pages updated with project id #{project.id}"
+				end
+				}
 
-			#Update the crawl record for the project page
-			crawl.update_attributes(:html => gsp_page_html.to_html, :project_id => project.id, :status_code => 2)
-			crawl.touch
-			crawl.save
-			
-			associated_pages = Webcrawl.where('url like ?', "%#{gsp_page_url[0..-2]}%")
-			associated_pages.each do |x|
-				x.update_attributes(:project_id => project.id)
-				puts "Associated pages updated with project id #{project.id}"
-			end
-			}
 		rescue Timeout::Error
 			if crawl.retries > 0
 				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
@@ -391,6 +387,83 @@ def cdm_new_page_crawler(webcrawls = Webcrawl.where(:source => ["cdm_gsp","cdm_c
 		puts "Moving on."
 	end
 end
+
+def cdm_cp2_page_updater(webcrawls = Webcrawl.where(:source => "cdm_cp2", :status_code => 2))
+ 	puts "Updating info on CDM projects in their 2nd crediting period"
+	webcrawls.each do |crawl|
+		begin
+			page_url = crawl.url
+
+			status = Timeout::timeout(20) {
+				}
+		end
+	end
+end
+
+def cdm_cp2_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_cp2", :status_code => 1))
+ 	puts "Collecting new info on CDM projects in their 2nd crediting period"
+	webcrawls.each do |crawl|
+		begin
+			cp2_page_url = crawl.url
+
+			status = Timeout::timeout(20) {
+				puts "Started on #{cp2_page_url}"
+				page_html = open(cp2_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+				cp2_page = Nokogiri::HTML(page_html)
+				cp2_page_html = cp2_page.css("html body div#container div#content div#cols div#main")
+				
+				if cp2_page_html.to_html == gsp_page_html.to_html then
+					puts "The Project did not reach the 2nd crediting period yet."
+				else
+
+				end
+
+				#Update the crawl record for the project page
+				crawl.update_attributes(:html => cp2_page_html.to_html, :status_code => 2)
+				crawl.touch
+				crawl.save
+				}
+		end
+	end
+end
+
+# def cdm_cp3_page_updater(webcrawls = Webcrawl.where(:source => "cdm_cp3", :status_code => 2))
+#  	puts "Updating info on CDM projects in their 3rd crediting period"
+# 	webcrawls.each do |crawl|
+# 		begin
+# 			page_url = crawl.url
+
+# 			status = Timeout::timeout(20) {
+# 				}
+# 		end
+# 	end
+# end
+
+# def cdm_cp3_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_cp3", :status_code => 1))
+#  	puts "Collecting new info on CDM projects in their 3rd crediting period"
+# 	webcrawls.each do |crawl|
+# 		begin
+# 			cp3_page_url = crawl.url
+
+# 			status = Timeout::timeout(20) {
+
+				# puts "Started on #{cp3_page_url}"
+				# page_html = open(cp3_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+				# cp3_page = Nokogiri::HTML(page_html)
+				# cp3_page_html = cp3_page.css("html body div#container div#content div#cols div#main")
+				
+				# if cp2_page_html.to_html == cp3_page_html.to_html then
+				# 	puts "The Project did not reach the 3rd crediting period yet."
+				# end
+
+				# #Update the crawl record for the project page
+				# crawl.update_attributes(:html => cp3_page_html.to_html, :status_code => 2)
+				# crawl.touch
+				# crawl.save
+# 				}
+# 		end
+# 	end
+# end
 
 def vcs_update_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_code => 2))
 	puts "Updating the VCS pproject data"
@@ -1427,8 +1500,13 @@ new_vcs_doe_crawler
 #vcs_new_page_crawler
 #markit_update_page_crawler
 #markit_new_page_crawler
-cdm_new_page_crawler
-#cdm_update_page_crawler
+cdm_gsp_page_crawler
+# cdm_gsp_page_updater
+# cdm_cp2_page_crawler
+# cdm_cp2_page_updater
+# cdm_cp3_page_crawler
+# cdm_cp3_page_updater
+
 
 if !Webcrawl.where(:status_code => 4).empty? then
 	puts "These pages have timedout too many times. Check them manually, please!"

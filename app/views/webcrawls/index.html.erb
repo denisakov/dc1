@@ -1,12 +1,11 @@
-<h3>Webcrawls</h3>
-
-<table>
+<table class="table table-condensed table-hover">
     <tr>Total number of links <strong><%= @webcrawls.count %></strong></tr>
   <tr>
     <th>Retries</th>
     <th>Status code</th>
     <th>Url</th>
     <th>Project</th>
+    <th>Source</th>
     <th></th>
     <th></th>
     <th></th>
@@ -18,6 +17,7 @@
     <td><%= webcrawl.status_code %></td>
     <td><%= webcrawl.url %></td>
     <td><%= webcrawl.project_id %></td>
+    <td><%= webcrawl.source %></td>
     <td><%= link_to 'Show', webcrawl %></td>
     <td><%= link_to 'Edit', edit_webcrawl_path(webcrawl) %></td>
     <td><%= link_to 'Destroy', webcrawl, method: :delete, data: { confirm: 'Are you sure?' } %></td>

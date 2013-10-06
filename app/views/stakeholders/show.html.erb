@@ -5,10 +5,12 @@
 	<%= @stakeholder.title %>
 </p>
 
+<% if @stakeholder.short_title %>
 <p>
 	<b>Short title:</b>
 	<%= @stakeholder.short_title %>
 </p>
+<% end %>
 
 <p>
 	<b>Auth. country:</b>

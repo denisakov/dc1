@@ -56,8 +56,10 @@
 	<% end %>
 	<%= ")" %>
 </p>
-<% if @project.roles.where(:role => "Investor") %>
+
+<p>
 <b>Investor countries:</b>
+<% if !@project.roles.where(:role => "Investor").blank? %>
 	<% @project.roles.where(:role => "Investor").each do |r| %>
         <% if r.country %>
 	        <ul>
@@ -74,11 +76,12 @@
 					<% end %>
 				<%= ")" %>
 			</ul>
-		<% else %>
-			<%= "None" %>
 		<% end %>
     <% end %>
+<% else %>
+	<%= "None" %>
 <% end %>
+</p>
 <p>
 	<b>Fee:</b>
 	<% if !@project.fee.blank? %>
