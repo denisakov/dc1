@@ -102,8 +102,8 @@ namespace :crawl do
 			puts "Submitted the form"
 		  	#Define maximum number of pages, by scanning the page numbers
 			max = @agent.page.links[63].text.to_i
-			if !Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3"]).order("last_page DESC").first.nil?
-				lst = Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3"]).order("last_page DESC").first.last_page.to_i
+			if !Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3","cdm_hs"]).order("last_page DESC").first.nil?
+				lst = Webcrawl.where(:source => ["cdm_gsp","cdm_cp2","cdm_cp3","cdm_hs"]).order("last_page DESC").first.last_page.to_i
 				@array_to_scan = (lst..max).to_a
 				puts "Scan will start from page #{lst} and end at page #{max}"
 			else
@@ -176,6 +176,20 @@ namespace :crawl do
 						crawl.save
 						puts "I've heard that one before."
 						puts cp3_page_url
+					end
+
+					hs_page_url = p['href'].gsub(" ", "%20").gsub("view", "history")
+					if Webcrawl.where('url = ?', hs_page_url).first.blank? then
+						puts "That's a new one."
+						crawl = Webcrawl.create!(:url => hs_page_url, :source => "cdm_hs", :last_page => i, :status_code => 1, :retries => @r)
+						puts hs_page_url, i
+					else
+						crawl = Webcrawl.where('url = ?', hs_page_url).first
+						crawl.status_code = 2
+						crawl.touch
+						crawl.save
+						puts "I've heard that one before."
+						puts hs_page_url
 					end
 				end
 					puts "Page #{i} is scanned"

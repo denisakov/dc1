@@ -2,7 +2,7 @@ class StandardsController < ApplicationController
   # GET /standards
   # GET /standards.json
   def index
-    @standards = Standard.all
+    @standards = Standard.scoped.order(sort_column + " " + sort_direction)
 
     respond_to do |format|
       format.html # index.html.erb
@@ -79,5 +79,14 @@ class StandardsController < ApplicationController
       format.html { redirect_to standards_url }
       format.json { head :no_content }
     end
+  end
+  private
+
+  def sort_column
+    Country.column_names.include?(params[:sort]) ? params[:sort] : "name"
+  end
+
+  def sort_direction
+    %w[asc desc].include?(params[:direction]) ? params[:direction] : "asc"
   end
 end

@@ -1,7 +1,4 @@
-<h1>Standards</h1>
-
-<%= will_paginate @standards, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
-
+ 
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
@@ -15,16 +12,10 @@
   <tr>
     <td><%= standard.name %></td>
     <td><%= standard.short_name %></td>
-    <td>
-      <% if standard.when_dates.first then %>
-        <%= standard.when_dates.first.projects.first.id %>
-      <% else %>
-        <%= "" %>
-      <% end %>
-    </td>
+    <td><%= standard.project.id %></td>
+    
     <td><%= link_to 'Edit', edit_standard_path(standard) %></td>
     
   </tr>
 <% end %>
 </table>
-<%= will_paginate @standards, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>

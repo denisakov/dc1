@@ -111,22 +111,41 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				#Retreave the project title
 				cdm_proj_title = cdm_proj_id_title[cdm_proj_id_title.index(":")+1..cdm_proj_id_title.length].strip
 
-				#Find if the scale is the number 5 or number 6
+				#Find if there is a funds section
 				if gsp_page_html.css("tr:nth-child(4) th").inner_text.strip == "Bilateral and Multilateral Funds"
 					#Grab the sectoral scope
 					cdm_scope = gsp_page_html.css("tr:nth-child(5) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 					#Grab the project scale
-					cdm_proj_scale = gsp_page_html.css("tr:nth-child(6) td").text.strip.capitalize!
+					cdm_proj_scale = gsp_page_html.css("tr:nth-child(6) td").children[0].text.strip.capitalize!
 					#Grab the methodologies used
 					cdm_meths = gsp_page_html.css("tr:nth-child(7) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 					#Retreave the fee amount
-					cdm_fee = gsp_page_html.css("tr:nth-child(8) span").text
+					cdm_fee = gsp_page_html.css("tr:nth-child(8) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").gsub(/[^\d]/,"")[0..-2]
+					#Find the registration date
+					if gsp_page_html.css("tr:nth-child(10) td").children[1].text  =~ /[\d]/
+						cdm_reg_date = Date.parse(gsp_page_html.css("tr:nth-child(11) td").children[1].text)
+					else
+						cdm_reqr_date == "Review Requested"
+						cdm_wdr_date == "Withdrawn"
+					end
+					#find creditting period starting date
+					cdm_sp1_st_date = Date.parse(gsp_page_html.css("tr:nth-child(12) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[0..10].strip)
+					#find creditting period end date
+					cdm_sp1_fn_date = Date.parse(gsp_page_html.css("tr:nth-child(12) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[13..22].strip)
 				else
 					cdm_scope = gsp_page_html.css("tr:nth-child(4) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
-					cdm_proj_scale = gsp_page_html.css("tr:nth-child(5) td").text.strip.capitalize!
-					cdm_meths = gsp_page_html.css("tr:nth-child(6) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
-					cdm_fee = gsp_page_html.css("tr:nth-child(9) span").text
 					
+					cdm_proj_scale = gsp_page_html.css("tr:nth-child(5) td").children[0].text.strip.capitalize!
+					cdm_meths = gsp_page_html.css("tr:nth-child(6) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+					cdm_fee = gsp_page_html.css("tr:nth-child(7) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").gsub(/[^\d]/,"")[0..-2]
+					if gsp_page_html.css("tr:nth-child(11) td").children[1].text =~ /[\d]/
+						cdm_reg_date = Date.parse(gsp_page_html.css("tr:nth-child(10) td").children[1].text)
+					else
+						cdm_reqr_date == "Review Requested"
+						cdm_wdr_date == "Withdrawn"
+					end
+					cdm_sp1_st_date = Date.parse(gsp_page_html.css("tr:nth-child(11) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[0..10].strip)
+					cdm_sp1_fn_date = Date.parse(gsp_page_html.css("tr:nth-child(11) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[13..22].strip)
 				end
 				
 				#Create a new project record
@@ -290,10 +309,8 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							doc_url = a.children[5]['href']
 							#Define the issue date of the document
 							issue_date = "01.01.2000"
-							#Check if date exists
-							date = WhenDate.where('date = ?', issue_date).first
-							#Write in the new date or return the one found above
-							date ||= WhenDate.create!(:date => issue_date)
+							
+							check_date(issue_date)
 
 							#Check if country name exists
 							country = Country.where('name like ?', cdm_inv_country).first
@@ -388,44 +405,44 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 	end
 end
 
-def cdm_cp2_page_updater(webcrawls = Webcrawl.where(:source => "cdm_cp2", :status_code => 2))
- 	puts "Updating info on CDM projects in their 2nd crediting period"
-	webcrawls.each do |crawl|
-		begin
-			page_url = crawl.url
+# def cdm_cp2_page_updater(webcrawls = Webcrawl.where(:source => "cdm_cp2", :status_code => 2))
+#  	puts "Updating info on CDM projects in their 2nd crediting period"
+# 	webcrawls.each do |crawl|
+# 		begin
+# 			page_url = crawl.url
 
-			status = Timeout::timeout(20) {
-				}
-		end
-	end
-end
+# 			status = Timeout::timeout(20) {
+# 				}
+# 		end
+# 	end
+# end
 
-def cdm_cp2_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_cp2", :status_code => 1))
- 	puts "Collecting new info on CDM projects in their 2nd crediting period"
-	webcrawls.each do |crawl|
-		begin
-			cp2_page_url = crawl.url
+# def cdm_cp2_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_cp2", :status_code => 1))
+#  	puts "Collecting new info on CDM projects in their 2nd crediting period"
+# 	webcrawls.each do |crawl|
+# 		begin
+# 			cp2_page_url = crawl.url
 
-			status = Timeout::timeout(20) {
-				puts "Started on #{cp2_page_url}"
-				page_html = open(cp2_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
-				cp2_page = Nokogiri::HTML(page_html)
-				cp2_page_html = cp2_page.css("html body div#container div#content div#cols div#main")
+# 			status = Timeout::timeout(20) {
+# 				puts "Started on #{cp2_page_url}"
+# 				page_html = open(cp2_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+# 				cp2_page = Nokogiri::HTML(page_html)
+# 				cp2_page_html = cp2_page.css("html body div#container div#content div#cols div#main")
 				
-				if cp2_page_html.to_html == gsp_page_html.to_html then
-					puts "The Project did not reach the 2nd crediting period yet."
-				else
+# 				if cp2_page_html.to_html == gsp_page_html.to_html then
+# 					puts "The Project did not reach the 2nd crediting period yet."
+# 				else
 
-				end
+# 				end
 
-				#Update the crawl record for the project page
-				crawl.update_attributes(:html => cp2_page_html.to_html, :status_code => 2)
-				crawl.touch
-				crawl.save
-				}
-		end
-	end
-end
+# 				#Update the crawl record for the project page
+# 				crawl.update_attributes(:html => cp2_page_html.to_html, :status_code => 2)
+# 				crawl.touch
+# 				crawl.save
+# 				}
+# 		end
+# 	end
+# end
 
 # def cdm_cp3_page_updater(webcrawls = Webcrawl.where(:source => "cdm_cp3", :status_code => 2))
 #  	puts "Updating info on CDM projects in their 3rd crediting period"
@@ -1493,6 +1510,86 @@ def define_pp(country, project, role, hash = {})
 	end
 end
 
+def cdm_withdrawn_crawler
+	puts "Collecting withdrawn CDM projects"
+
+	status = Timeout::timeout(20) {
+	wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
+	page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+	wdr_page = Nokogiri::HTML(page_html)
+	wdr_page_html = wdr_page.css("html body div#container div#content div#cols div#main")
+
+	wdr_page_html.children[7].search("tr")[1..-1].each do |p|
+		wdr_proj_refno =  p.children[0].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+		project = Project.where(:refno => wdr_proj_refno).first
+		if !project.blank? then
+			proj_acc_date = Date.parse(p.children[8].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip)
+			proj_wdr_date = Date.parse(p.children[10].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip)
+
+			# host = p.children[4].children[1].children[1].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+
+			desc = "Project submitted to CDM EB"
+			project_id = project.id
+			check_date(proj_acc_date)
+			date_id = @date.id
+			standard_id = project.standards.where(:short_name => "CDM").first.id
+			document_id = nil
+
+			project.stakeholders.each do |s|
+				stakeholder_id = s.id
+				project.countries.each do |c|
+					country_id = c.id
+					occasion = Occasion.where(:description => desc, :project_id => project_id, :country_id => country_id, :when_date_id => date_id, :standard_id => standard_id, :document_id => document_id, :stakeholder_id => stakeholder_id).first
+					if !occasion.nil? then
+						puts "Found the Occasion #{occasion.first.desc}"
+					else
+						#Create an occasion for the Document
+						project.occasions.build(:description => desc, :project_id => project_id, :country_id => country_id, :when_date_id => date_id, :standard_id => standard_id, :document_id => document_id, :stakeholder_id => stakeholder_id)
+						puts "Created occasion -#{desc}- for project #{project_id} for country #{country_id} for company #{stakeholder_id} on #{@date.date_string}"
+					project.save!
+					end
+					project.save!
+				end
+				project.save!
+			end
+			project.save!
+			
+			desc = "Project withdrawn from CDM EB"
+			check_date(proj_wdr_date)
+			date_id = @date.id
+			
+			project.stakeholders.each do |s|
+				stakeholder_id = s.id
+				project.countries.each do |c|
+					country_id = c.id
+					check_occasion(project, desc, project_id, country_id, date_id, standard_id, document_id, stakeholder_id)
+					project.save!
+				end
+			end
+			project.save!
+
+			#Update the crawl record for the project page
+			crawl = Webcrawl.where(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1).first
+			crawl ||= Webcrawl.create!(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1)
+			crawl.save!
+		end
+
+	end
+	}
+end
+
+def check_date(date)
+	#Check if date exists
+	@date = WhenDate.where('date = ?', date).first
+	#Write in the new date or return the one found above
+	@date ||= WhenDate.create!(:date => date)
+
+end
+
+def check_occasion(project, desc, project_id, country_id, date_id, standard_id, document_id, stakeholder_id)
+	
+end
+
 new_cdm_doe_crawler
 new_vcs_doe_crawler
 
@@ -1500,22 +1597,23 @@ new_vcs_doe_crawler
 #vcs_new_page_crawler
 #markit_update_page_crawler
 #markit_new_page_crawler
-cdm_gsp_page_crawler
+# cdm_gsp_page_crawler
 # cdm_gsp_page_updater
 # cdm_cp2_page_crawler
 # cdm_cp2_page_updater
 # cdm_cp3_page_crawler
 # cdm_cp3_page_updater
+cdm_withdrawn_crawler
 
 
-if !Webcrawl.where(:status_code => 4).empty? then
-	puts "These pages have timedout too many times. Check them manually, please!"
-	puts "CDM"
-	puts Webcrawl.where(:source => "cdm_gsp", :status_code => 4)
-	puts "VCS"
-	puts Webcrawl.where(:source => "vcs", :status_code => 4)
-	puts "Markit"
-	puts Webcrawl.where(:source => "mark", :status_code => 4)
-end
+	if !Webcrawl.where(:status_code => 4).empty? then
+		puts "These pages have timedout too many times. Check them manually, please!"
+		puts "CDM"
+		puts Webcrawl.where(:source => "cdm_gsp", :status_code => 4)
+		puts "VCS"
+		puts Webcrawl.where(:source => "vcs", :status_code => 4)
+		puts "Markit"
+		puts Webcrawl.where(:source => "mark", :status_code => 4)
+	end
 end
 end
