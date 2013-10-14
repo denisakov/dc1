@@ -42,11 +42,11 @@
 <p>
 	<b>Host country:</b>
 	<% if @project.roles.where(:role => "Host").first then %>
-      <%= @project.countries.where(:id => @project.roles.where(:role => "Host").first.country_id).first.name %>
-      <% else %>
-      <%= "Unknown" %>
-    <% end %>
-    <%= "(" %>
+		<%= @project.countries.where(:id => @project.roles.where(:role => "Host").first.country_id).first.name %>
+	<% else %>
+		<%= "Unknown" %>
+	<% end %>
+	<%= "(" %>
 	<% @project.entities.where(:role => "host_pp").each do |e| %>
 		<% if e.stakeholder %>
 			<%= link_to e.stakeholder.title + ";", stakeholder_path(e.stakeholder) %>

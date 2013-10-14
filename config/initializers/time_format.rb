@@ -1,1 +1,1 @@
-Time::DATE_FORMATS[:doc_date] = "%F"
+Time::DATE_FORMATS[:just_date] = "%F"

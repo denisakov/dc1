@@ -22,8 +22,12 @@ namespace :crawl do
 			cdm_timeout = Timeout::timeout(20){
 				@agent.get("http://cdm.unfccc.int/DOE/list/index.html")
 			}
-			@agent.page.links[36..-1].each do |l|
-				cdm_doe_link = "http://cdm.unfccc.int/DOE/list/" + l.uri.to_s
+			max = @agent.page.links[-1].uri.to_s[-4..-1].gsub("0", "").to_i
+
+			scan_range = (1..max).to_a
+
+			scan_range.each do |a|
+				cdm_doe_link = "http://cdm.unfccc.int/DOE/list/DOE.html?entityCode=E-" + "%.4i" %a
 				if Webcrawl.where('url = ?', cdm_doe_link).first.blank? then
 					puts "That's a new one."
 					crawl = Webcrawl.create!(:url => cdm_doe_link, :source => "cdm_doe", :status_code => 1, :retries => @r)

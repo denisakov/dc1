@@ -2,7 +2,12 @@
 
 <p>
   <b>Date:</b>
-  <%= @when_date.date %>
+  
+  <% if !@when_date.date.blank? then %>
+        <%= @when_date.date.localtime.to_formatted_s(:just_date) %>
+      <% else %>
+        <%= @when_date.date %>
+      <% end %>  
 </p>
 
 

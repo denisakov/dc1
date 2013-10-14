@@ -14,16 +14,16 @@ class WhenDate < ActiveRecord::Base
   require 'chronic'
 
   def date_string
-    date.to_s(:doc_date)
+    date.to_s(:just_date)
   end
 
   def date_string=(value)
     self.date = Chronic.parse(value)
 	rescue ArgumentError
-	@date_invalid = true
+  	@date_invalid = true
   end
 
   def validate
-  errors.add(:date, "is invalid") if @date_invalid
+    errors.add(:date, "is invalid") if @date_invalid
   end
 end

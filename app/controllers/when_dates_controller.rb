@@ -3,7 +3,7 @@ class WhenDatesController < ApplicationController
   # GET /when_dates
   # GET /when_dates.json
   def index
-    @when_dates = WhenDate.order(sort_column + " " + sort_direction).page(params[:page]).per_page(30)
+    @when_dates = WhenDate.scoped.order(sort_column + " " + sort_direction).page(params[:page]).per_page(50)
 
     respond_to do |format|
       format.html # index.html.erb
@@ -85,7 +85,7 @@ class WhenDatesController < ApplicationController
   private
 
   def sort_column
-    WhenDate.includes(:documents).column_names.include?(params[:sort]) ? params[:sort] : "date"
+    WhenDate.joins(:documents).column_names.include?(params[:sort]) ? params[:sort] : "date"
   end
 
   def sort_direction

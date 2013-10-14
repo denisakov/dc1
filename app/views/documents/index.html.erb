@@ -1,4 +1,4 @@
-<h1>Documents (<%= @documents.count %>)</h1>
+(<%= @documents.count %>)
 <%= will_paginate @documents, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 <table class="table table-condensed table-hover">
   <thead>
@@ -22,9 +22,9 @@
     <td>
         <% document.occasions.each do |o| %>
         <% if o.description =~ /issue/i %>
-        <!--   <td><%= WhenDate.find(o.when_date_id).date_string %></td> -->
+        <!--   <td><%= WhenDate.find(o.when_date_id).date.localtime.to_formatted_s(:just_date) %></td> -->
         <% elsif o.description =~ /upload/i && WhenDate.find(o.when_date_id)%>
-          <%= WhenDate.find(o.when_date_id).date_string %>
+          <%= WhenDate.find(o.when_date_id).date.localtime.to_formatted_s(:just_date) %>
         <% else %>
           <%= "?" %>
           

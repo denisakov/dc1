@@ -1,19 +1,33 @@
-<h1>Dates</h1>
+(<%= @when_dates.count %>)
+<%= will_paginate @when_dates, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 
 <table class="table table-condensed table-hover">
-  <tr>
-    <th>Date</th>
-    <th>Countries</th>
-    <th>Projects</th>
-    <th>Occasions</th>
-    <th></th>
-    <th></th>
-    <th></th>
-  </tr>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Countries</th>
+      <th>Projects</th>
+      <th>Occasions</th>
+      <th>Documents</th>
+      <th>Stakeholders</th>
+      
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+</thead>
+<tbody>
 
 <% @when_dates.each do |when_date| %>
   <tr>
-    <td><%= when_date.date_string %></td>
+    <td>
+      <% if !when_date.date.blank? then %>
+        <%= when_date.date.localtime.to_formatted_s(:just_date) %>
+        <h6>Added at <%= when_date.updated_at.localtime.strftime('%I:%M:%S') %></h6>
+      <% else %>
+        <%= "NONE" %>
+      <% end %>  
+    </td>
     <td><% when_date.countries.each do |c| %>
           - <%= c.name %><br />
         <% end %>
@@ -26,9 +40,21 @@
           - <%= o.description %><br />
           <% end %>
     </td>
+    <td><% when_date.documents.each do |d| %>
+          - <%= d.title %><br />
+          <% end %>
+    </td>
+    <td><% when_date.stakeholders.each do |s| %>
+          <small>- <%= s.title %><br /></small>
+          <% end %>
+    </td>
+
     <td><%= link_to 'Show', when_date %></td>
     <td><%= link_to 'Edit', edit_when_date_path(when_date) %></td>
     <td><%= link_to 'Destroy', when_date, method: :delete, data: { confirm: 'Are you sure?' } %></td>
   </tr>
 <% end %>
+</tbody>
+<%= will_paginate @dates, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
 </table>

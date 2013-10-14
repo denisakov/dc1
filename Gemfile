@@ -8,6 +8,7 @@ gem 'webrick', '1.3.1'
 gem 'pg', '~> 0.15.1'
 gem 'will_paginate', '3.0.4'
 gem 'bootstrap-will_paginate', '0.0.9'
+gem 'time_zone_ext'
 
 group :development do
 	gem 'rspec-rails', '2.10.0'
@@ -28,7 +29,8 @@ gem 'nokogiri', '1.5.5'
 
 gem 'mechanize', '2.6.0'
 
-gem 'roo', '1.2.3'
+#gem 'roo', '1.2.3'
+#gem 'rubyzip', :require => 'zip/zipfilesystem' needed for roo
 
 gem 'hoe', '2.8.0'
 

@@ -10,6 +10,7 @@ namespace :crawl do
     @timed_out = Array.new
     @agent = Mechanize.new
 	@agent.idle_timeout = 0.9
+	@default_date = "01.01.2000"
 
 def cdm_gsp_page_updater(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 2))
  	puts "Updating the CDM project data"
@@ -94,12 +95,17 @@ end
 
 def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 1))
  	puts "Collecting new CDM projects"
+ 	
 	webcrawls.each do |crawl|
 		begin
+			@country_list = Array.new
+			@stakeholder_list = Array.new
+			@date_list = Array.new
 			gsp_page_url = crawl.url
 
-			status = Timeout::timeout(20) {
-
+			status = Timeout::timeout(30) {
+				puts ""
+				puts ""
 				puts "Started on #{gsp_page_url}"
 				page_html = open(gsp_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
 				gsp_page = Nokogiri::HTML(page_html)
@@ -119,44 +125,97 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					cdm_proj_scale = gsp_page_html.css("tr:nth-child(6) td").children[0].text.strip.capitalize!
 					#Grab the methodologies used
 					cdm_meths = gsp_page_html.css("tr:nth-child(7) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+					#Grab the amount of emission reductions
+					cdm_er = gsp_page_html.css("tr:nth-child(8) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").gsub(/[^\d]/,"")[0..-2]
 					#Retreave the fee amount
-					cdm_fee = gsp_page_html.css("tr:nth-child(8) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").gsub(/[^\d]/,"")[0..-2]
+					cdm_fee = gsp_page_html.css("tr:nth-child(9) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ")[5..-2]
 					#Find the registration date
-					if gsp_page_html.css("tr:nth-child(10) td").children[1].text  =~ /[\d]/
-						cdm_reg_date = Date.parse(gsp_page_html.css("tr:nth-child(11) td").children[1].text)
+					if gsp_page_html.css("tr:nth-child(11) td").children[1].text  =~ /[\d]/
+						cdm_reg_date = parse_date(gsp_page_html.css("tr:nth-child(11) td").children[1])
+						@date_list << [cdm_reg_date.id, "Project registered by CDM EB", nil]
 					else
-						cdm_reqr_date == "Review Requested"
-						cdm_wdr_date == "Withdrawn"
+						cdm_reqr_date = "Review Requested"
+						cdm_wdr_date = "Withdrawn"
+						cdm_rj_date = "Rejected"
 					end
-					#find creditting period starting date
-					cdm_sp1_st_date = Date.parse(gsp_page_html.css("tr:nth-child(12) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[0..10].strip)
-					#find creditting period end date
-					cdm_sp1_fn_date = Date.parse(gsp_page_html.css("tr:nth-child(12) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[13..22].strip)
+					if gsp_page_html.css("tr:nth-child(12)").text =~ /Crediting/
+						#find creditting period starting date
+						parse_period(gsp_page_html.css("tr:nth-child(12) td").children[0])
+						cdm_sp1_st_date = @start_date
+						@date_list << [cdm_sp1_st_date.id, "1st crediting period started", nil]
+						#find creditting period end date
+						cdm_sp1_fn_date = @end_date
+						@date_list << [cdm_sp1_fn_date.id, "1st crediting period ended", nil]
+						if  gsp_page_html.css("tr:nth-child(12) td").children[3] =~ /Subsequent/ then
+							parse_period(gsp_page_html.css("tr:nth-child(12) td").children[5])
+							cdm_sp2_st_date = @start_date
+							@date_list << [cdm_sp2_st_date.id, "2nd crediting period started", nil]
+							cdm_sp2_fn_date = @end_date
+							@date_list << [cdm_sp2_fn_date.id, "2nd crediting period ended", nil]
+						end
+						if gsp_page_html.css("tr:nth-child(12) td").children[2] =~ /Changed/ then
+							parse_period(gsp_page_html.css("tr:nth-child(12) td").children[3])
+							cdm_sp1_old_st_date = @start_date
+							@date_list << [cdm_sp1_old_st_date.id, "1st crediting period should have started (changed)", nil]
+							cdm_sp1_old_fn_date = @end_date
+							@date_list << [cdm_sp1_old_fn_date.id, "1st crediting period should have ended (changed)", nil]
+						end
+					end
+
 				else
 					cdm_scope = gsp_page_html.css("tr:nth-child(4) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 					
 					cdm_proj_scale = gsp_page_html.css("tr:nth-child(5) td").children[0].text.strip.capitalize!
 					cdm_meths = gsp_page_html.css("tr:nth-child(6) span").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
-					cdm_fee = gsp_page_html.css("tr:nth-child(7) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").gsub(/[^\d]/,"")[0..-2]
-					if gsp_page_html.css("tr:nth-child(11) td").children[1].text =~ /[\d]/
-						cdm_reg_date = Date.parse(gsp_page_html.css("tr:nth-child(10) td").children[1].text)
+					cdm_er = gsp_page_html.css("tr:nth-child(7) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").gsub(/[^\d]/,"")[0..-2]
+					cdm_fee = gsp_page_html.css("tr:nth-child(8) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ")[5..-2]
+					if gsp_page_html.css("tr:nth-child(10) td").children[1].text =~ /[\d]/
+						cdm_reg_date = parse_date(gsp_page_html.css("tr:nth-child(10) td").children[1])
+						@date_list << [cdm_reg_date.id, "Project registered by CDM EB", nil]
 					else
-						cdm_reqr_date == "Review Requested"
-						cdm_wdr_date == "Withdrawn"
+						cdm_reqr_date = "Review Requested"
+						cdm_wdr_date = "Withdrawn"
+						cdm_rj_date = "Rejected"
 					end
-					cdm_sp1_st_date = Date.parse(gsp_page_html.css("tr:nth-child(11) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[0..10].strip)
-					cdm_sp1_fn_date = Date.parse(gsp_page_html.css("tr:nth-child(11) td").children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ")[13..22].strip)
+					if gsp_page_html.css("tr:nth-child(11)").text =~ /Crediting/
+						parse_period(gsp_page_html.css("tr:nth-child(11) td").children[0])
+						cdm_sp1_st_date = @start_date
+						@date_list << [cdm_sp1_st_date.id, "1st crediting period started", nil]
+						cdm_sp1_fn_date = @end_date
+						@date_list << [cdm_sp1_fn_date.id, "1st crediting period ended", nil]
+						if  gsp_page_html.css("tr:nth-child(11) td").children[3] =~ /Subsequent/ then
+							parse_period(gsp_page_html.css("tr:nth-child(11) td").children[5])
+							cdm_sp2_st_date = @start_date
+							@date_list << [cdm_sp2_st_date.id, "2nd crediting period started", nil]
+							cdm_sp2_fn_date = @end_date
+							@date_list << [cdm_sp2_fn_date.id, "2nd crediting period ended", nil]
+						end
+						if gsp_page_html.css("tr:nth-child(11) td").children[2] =~ /Changed/ then
+							parse_period(gsp_page_html.css("tr:nth-child(11) td").children[3])
+							cdm_sp1_old_st_date = @start_date
+							@date_list << [cdm_sp1_old_st_date.id, "1st crediting period should have started (changed)", nil]
+							cdm_sp1_old_fn_date = @end_date
+							@date_list << [cdm_sp1_old_fn_date.id, "1st crediting period should have ended (changed)", nil]
+						end
+					end
 				end
+				puts "#{cdm_scope}, #{cdm_meths}, #{cdm_er}"
+				if cdm_reg_date then
+					puts "Registration date #{cdm_reg_date.date.strftime("%F")}"
+				else
+					puts "Project wasn't registered"
+				end
+				puts "#{cdm_sp1_st_date}"
+				puts "#{cdm_sp1_fn_date}"
 				
 				#Create a new project record
 				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => cdm_proj_scale, :fee => cdm_fee)
-				puts "created a project"
 				std_name = "Clean Development Mechanism"
 				short_std_name = "CDM"
 				#Write the standard name
-				standard = Standard.create(:name => std_name, :short_name => short_std_name, :project_id => project.id)
+				standard = Standard.create!(:name => std_name, :short_name => short_std_name, :project_id => project.id)
 
-				puts "#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_proj_scale}, $#{cdm_fee}"
+				puts "#{project.id}, CDM#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_proj_scale}, $#{cdm_fee}"
 				
 				#Analyse the block of "Host country"
 				gsp_page_html.css("tr:nth-child(2)").children[2].children.each do |a|
@@ -165,59 +224,61 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						cdm_host_country = a.children[1].text
 						puts "Host country is #{cdm_host_country}"
 						#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
-						doc_url = a.children[3]['href']
-
+						doc_url = a.children[5]['href']
 						#set the role variable
-						role = "Host"
+						country_role = "Host"
 						#set the process variable
 						process_type = "Registration"
 						#set the doc title; including the country name into doc's name for now.
 						doc_title = "Letter of Approval"
 						#set document short name
 						short_doc_title = "LoA"
+						
+						#Create a document
+						document = Document.create!(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+						
 						#Define the issue date of the document
-						issue_date = "01.01.2000"
-						#Check if date exists
-						date = WhenDate.where('date = ?', issue_date).first
-						#Write in the new date or return the one found above
-						date ||= WhenDate.create!(:date => issue_date)
+						issue_date = check_date(@default_date)
+						@date_list << [issue_date.id, "Issue date", document.id]
 
-						#Check if country name exists
-						@country = Country.where('name = ?', cdm_host_country).first
-						#Write in the new country names or return the one found above
-						@country ||= Country.create!(:name => cdm_host_country)
+						@host_country = check_country(cdm_host_country)
+						
 						#Create a role for the country in the project
-						project.roles.build(:country_id => @country.id, :role => role)						
+						project.roles.build(:country_id => @host_country.id, :role => country_role)						
 						project.save!
+						
 						#Grab all the project participants
-						host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+						#-----------------------------------
+						if a.children[3].text =~ /involved/ then
+							host_pps = a.children[12].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+						else
+							host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+						end
+						#-----------------------------------
 
-						role = "host_pp"
-						define_pp(@country, project, role, host_pps)
-
+						sth_role = "host_pp"
+						define_pp(@host_country, project, sth_role, host_pps)
+						
 						#Find registering DOE
 						short_doe_name = gsp_page_url.gsub("http://cdm.unfccc.int/Projects/DB/", "").gsub("/view?cp=", "").gsub(/[\d]/,"").gsub("%", " ").gsub(".","")
 						doe_name_finder(short_doe_name)
+						short_doe_name = @a[0]
 						doe_name = @a[1]
-
-						#Identify the stakeholder
-						stakeholder = Stakeholder.where('title = ?', doe_name).first
-
+						if @a[2] then
+							doe_country = Country.where('name = ?', @a[2]).first
+						else
+							doe_country = Country.where('name = ?', "Unknown").first
+						end
+						
+						@val_doe = check_doe(doe_name, short_doe_name, doe_country)
+						
 						#Define the role of the Stakeholder in the project
-						role = "val_doe"
+						sth_role = "val_doe"
 
-						puts "#{stakeholder.id} #{doe_name} #{role}"
-
-						project.entities.build(:project_id => project.id, :stakeholder_id => stakeholder.id, :role => role)
-
-						#Create a document
-						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-
-						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Issue date", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						project.entities.build(:project_id => project.id, :stakeholder_id => @val_doe.id, :role => sth_role)
+						puts "#{@val_doe.id} #{doe_name} - Validating DOE"
 						
 						project.save!
-						puts "Host country is #{@country.name}"
 					end
 				end
 				#Grab the PDD and related docs
@@ -247,30 +308,30 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					process_type = "Registration"
 					if doc_title and doc_url then
 						if a.inner_text =~ /accepted/ then
-							new_pdd_acc_date = Date.parse(a.next.next.inner_text)
-
-							#Check if date exists
-							date = WhenDate.where('date = ?', new_pdd_acc_date).first
-							#Write in the new date or return the one found above
-							date ||= WhenDate.create!(:date => new_pdd_acc_date)
+							new_pdd_acc_date = parse_date(a.next.next.inner_text)
 							#Create a document
 							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+							
+							@date_list << [newe_pdd_acc_date.id, "PDD was accepted by CDM EB", document.id]
 							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "PDD was accepted by CDM EB", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-							project.save!
+							# check_occasion(project, desc, project.id, @host_country.id, new_pdd_acc_date.id, standard.id, document.id, @val_doe.id)
 
 						end
 						#Define the issue date of the document
-						issue_date = "01.01.2000"
-						#Check if date exists
-						date = WhenDate.where('date = ?', issue_date).first
-						#Write in the new date or return the one found above
-						date ||= WhenDate.create!(:date => issue_date)
+						issue_date = check_date(@default_date)
 						#Create a document
 						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
 						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Issue date", :country_id => @country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-						project.save!
+						@date_list << [issue_date.id, "Issue date", document.id]
+						# puts "#{project.id}"
+						# puts "#{desc}"
+						# puts "#{@host_country.id}"
+						# puts "#{issue_date.id}"
+						# puts "#{standard.id}"
+						# puts "#{document.id}"
+						# puts "#{@val_doe.id}"
+
+						# check_occasion(project, desc, project.id, @host_country.id, issue_date.id, standard.id, document.id, @val_doe.id)
 
 						puts "#{doc_title} | #{doc_url}"
 					end
@@ -307,39 +368,38 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							short_doc_title = "LoA"
 							#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
 							doc_url = a.children[5]['href']
-							#Define the issue date of the document
-							issue_date = "01.01.2000"
 							
-							check_date(issue_date)
 
-							#Check if country name exists
-							country = Country.where('name like ?', cdm_inv_country).first
-							#Write in the new country names or return the one found above
-							country ||= Country.create!(:name => cdm_inv_country)
+							inv_country = check_country(cdm_inv_country)
 
 							#Create a role for the country in the project
-							project.roles.build(:country_id => country.id, :role => country_role)
-
+							project.roles.build(:country_id => inv_country.id, :role => country_role)
+							project.save!
+							#======================================
 							#Idenfify the project participants
 							if a.children[10] then
 								#Grab all the project participants
-								host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+								inv_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
 							else
-								host_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+								inv_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
 							end
+							#======================================
 
 							pp_role = "a1_pp"
-							define_pp(country, project, pp_role, host_pps)
-
+							define_pp(inv_country, project, pp_role, inv_pps)
 							
+							#Define the issue date of the document
+							issue_date = check_date(@default_date)
 							#Create a document
-							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+							document = Document.create!(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+
+							@date_list << [issue_date.id, "Issue date", document.id]
 
 							#Create an occasion for the Document
-							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+							# project.occasions.build(:description => "Issue date", :country_id => inv_country.id, :when_date_id => issue_date.id, :standard_id => standard.id, :document_id => document.id)
 
 							project.save!
-							puts "Investor country is #{country.name}"
+							puts "Investor country is #{inv_country.name}"
 						end
 					end
 				end
@@ -357,7 +417,11 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					x.update_attributes(:project_id => project.id)
 					puts "Associated pages updated with project id #{project.id}"
 				end
-				}
+				
+				create_ocassions(project, standard, @country_list, @stakeholder_list, @date_list)
+				project.save!
+			}
+				
 
 		rescue Timeout::Error
 			if crawl.retries > 0
@@ -393,12 +457,13 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 			end
 		end
 	end
+
 	if !@timed_out.empty? then
 		puts "There were some timeouts."
 		#Selecting all pages with timeouts so far
 		webcrawls = Webcrawl.find(@timed_out)
 		#Calling the same method but only with the timed out pages
-		cdm_update_page_crawler(webcrawls)
+		cdm_gsp_page_crawler(webcrawls)
 	#No timeouts
 	else
 		puts "Moving on."
@@ -1071,20 +1136,18 @@ def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status
 					doe_country = "Republic of Korea"
 				end
 
+				doe_country = check_country(country)
+
 				# if doe_country == "United States" then
 				# 	doe_country = "United States of America"
 				# end
 				puts "#{doe_country}"
 
 				#Check if country name exists
-				@country = Country.where('name like ?', doe_country).first
-				#Write in the new country names or return the one found above
-				@country ||= Country.create!(:name => doe_country)				
+				doe_country = check_country(doe_country)				
 				
 				#Check if stakeholder exists
-				stakeholder = Stakeholder.where('title = ? and country_id = ?', doe_name, @country.id).first
-				#Create a new DOE if it doesn't exist yet
-				stakeholder ||= Stakeholder.create!(:title => doe_name, :short_title => short_doe_name, :country_id => @country.id)
+				stakeholder = check_doe(doe_name, short_doe_name, doe_country.id)
 
 				#Update the crawl record for the project page
 				crawl.update_attributes(:html => doe_page_html.to_html, :status_code => 2)
@@ -1184,28 +1247,14 @@ def new_vcs_doe_crawler(webcrawls = Webcrawl.where(:source => "vcs_doe", :status
 
 				puts "#{vcs_doe_location}"
 
-				doe_country = "Unknown"
-
-				#Retreave the country of DOE's location
-				country_list = Country.all
-				country_list.each do |c|
-					if vcs_doe_location.include? c.name.to_s
-						doe_country = c.name.to_s
-						#puts "found it! #{c.name.to_s}"
-					end
-				end
+				doe_country = check_country(vcs_doe_location)
 
 				puts "#{doe_country}"
-
-				#Check if country name exists
-				@country = Country.where('name = ?', doe_country).first
-				#Write in the new country names or return the one found above
-				@country ||= Country.create!(:name => doe_country)				
-				
+	
 				#Check if stakeholder exists
-				stakeholder = Stakeholder.where('title = ?', doe_name).first
-				#Create a new DOE if it doesn't exist yet
-				stakeholder ||= Stakeholder.create!(:title => doe_name, :short_title => short_doe_name, :country_id => @country.id)
+				stakeholder = check_doe(doe_name, short_doe_name, doe_country)
+				
+				puts "New company added #{stakeholder.title}"
 
 				#Update the crawl record for the project page
 				crawl.update_attributes(:html => doe_page_html.to_html, :status_code => 2)
@@ -1303,9 +1352,20 @@ def doe_name_finder(name)
 		short_doe_name = "JQA"
 		doe_name = "Japan Quality Assurance Organisation"
 	end
-	if name =~ /KPMG/ then
-		short_doe_name = "KPMG"
+	if name =~ /Performance Registrar/ then
+		short_doe_name = "KPMGPR"
 		doe_name = "KPMG Performance Registrar, Inc."
+		doe_country = "Canada"
+	end
+	if name =~ /KPMG AZSA/ then
+		short_doe_name = "KPMGAZSA"
+		doe_name = "KPMG AZSA Sustainability Co., Ltd."
+		doe_country = "Japan"
+	end
+	if name =~ /KPMG Advisory/ then
+		short_doe_name = "KPMGA"
+		doe_name = "KPMG Advisory N.V."
+		doe_country = "Netherlands"
 	end
 	if name =~ /JACO/ then
 		short_doe_name = "JACO"
@@ -1348,8 +1408,14 @@ def doe_name_finder(name)
 		doe_name = "Hong Kong Quality Assurance Agency"
 	end
 	if name =~ /URS/ then
-		short_doe_name = "URS"
+		short_doe_name = "URSVP"
 		doe_name = "URS Verification Private, Ltd."
+		doe_country = "India"
+	end
+	if name =~ /Verification Limited/ then
+		short_doe_name = "URSV"
+		doe_name = "URS Verification Limited"
+		doe_country = "United Kingdom of Great Britain and Northern Ireland"
 	end
 	if name =~ /KTR|Korea Testing|KTDCert/ then
 		short_doe_name = "KTR"
@@ -1416,7 +1482,7 @@ def doe_name_finder(name)
 		doe_name = "Environmental Management Corporation"
 		doe_country = "South Korea"
 	end
-	if name =~ /BSI/ then
+	if name =~ /BSI|British Standards Institution/ then
 		short_doe_name = "BSI"
 		doe_name = "BSI Management Systems"
 		doe_country = "United Kingdom of Great Britain and Northern Ireland"
@@ -1446,9 +1512,10 @@ def doe_name_finder(name)
 		short_doe_name = "KR"
 		doe_name = "Korean Register of Shipping"
 	end
-	if name =~ /CTI/ then
+	if name =~ /Shenzhen CTI|CTI/ then
 		short_doe_name = "CTI"
 		doe_name = "Shenzhen CTI International Certification Co., Ltd."
+		doe_country = "China"
 	end
 	if name =~ /Ecocert/ then
 		short_doe_name = "EC"
@@ -1483,14 +1550,95 @@ def doe_name_finder(name)
 		short_doe_name = "SC"
 		doe_name = "Stantec Consulting"
 	end
+	if name =~ /PricewaterhouseCoopers/ then
+		short_doe_name = "PWC"
+		doe_name = "Price Waterhouse Coopers"
+		country = "South Africa"
+	end
+	if name =~ /Aarata|PWCASC/ then
+		short_doe_name = "PWCASC"
+		doe_name = "Pricewaterhouse Coopers Aarata Sustainability Certification Co. Ltd."
+		country = "Republic of Korea"
+	end
+	if name =~ /Certification B.V|PWCC/ then
+		short_doe_name = "PWCC"
+		doe_name = "PricewaterhouseCoopers Certification B.V"
+		country = "Netherlands"
+	end
+	if name =~ /Technology Institute of Parana|TECPAR/ then
+		short_doe_name = "TECPAR"
+		doe_name = "Technology Institute of Parana"
+		country = "Republic of Korea"
+	end
+	if name =~ /Nippon Kaiji|NKKQAL/ then
+		short_doe_name = "NKKQAL"
+		doe_name = "Nippon Kaiji Kentei Quality Assurance Limited"
+		country = "Japan"
+	end	
+	if name =~ /KICTEP|Transportation Technology Evaluation/ then
+		short_doe_name = "KICTEP"
+		doe_name = "Korea Institute of Construction & Transportation Technology Evaluation and Planning"
+		country = "Republic of Korea"
+	end
+	if name =~ /Clouston/ then
+		short_doe_name = "CE"
+		doe_name = "Clouston Environmental Sdn. Bhd."
+		country = "Malaysia"
+	end
+	if name =~ /Nexant/ then
+		short_doe_name = "NEXANT"
+		doe_name = "Nexant, Inc."
+		country = "United States of America"
+	end
+	if name =~ /ECA CERT|ECA/ then
+		short_doe_name = "ECACERT"
+		doe_name = "ECA CERT, Certification, S.A."
+		country = "Spain"
+	end
+	if name =~ /Tsinghua/ then
+		short_doe_name = "TSINGHUA"
+		doe_name = "Tsinghua"
+		country = "China"
+	end
+	if name =~ /ADVANCED WASTE/ then
+		short_doe_name = "AWMS"
+		doe_name = "Advanced Waste Management Systems Inc."
+		country = "Romania"
+	end
+	if name =~ /Dahua Engineering/ then
+		short_doe_name = "DEMG"
+		doe_name = "Dahua Engineering Management Group Ltd."
+		country = "China"
+	end
+	if name =~ /INSPECCO/ then
+		short_doe_name = "ICIS"
+		doe_name = "Inspecco Certification and Inspection Services Ltd."
+		country = "Turkey"
+	end
 	# if name =~ // then
 	# 	short_doe_name = ""
 	# 	doe_name = ""
+	# 	country = ""
 	# end
-	
+	# if name =~ // then
+	# 	short_doe_name = ""
+	# 	doe_name = ""
+	# 	country = ""
+	# end
+	# if name =~ // then
+	# 	short_doe_name = ""
+	# 	doe_name = ""
+	# 	country = ""
+	# end
+	# if name =~ // then
+	# 	short_doe_name = ""
+	# 	doe_name = ""
+	# 	country = ""
+	# end
 	@a = Array.new
 	@a << short_doe_name
 	@a << doe_name
+	@a << doe_country
 end
 
 def define_pp(country, project, role, hash = {})
@@ -1506,88 +1654,160 @@ def define_pp(country, project, role, hash = {})
 
 		project.entities.build(:project_id => project.id, :stakeholder_id => stakeholder.id, :role => role)
 		project.save!
-		puts "Stakeholder #{stakeholder.title} was connected to the project #{project.id} as #{role}"
+		puts "Stakeholder #{Stakeholder.where('title = ?', pp_name).first.title} was connected to the project #{project.id} as #{role}"
+
+		# @b = Array.new
+		# @b << [stakeholder.id, country.id]
+		if !@stakeholder_list.include? stakeholder.id
+			@stakeholder_list << stakeholder.id
+		end
+		stakeholder
 	end
 end
 
 def cdm_withdrawn_crawler
-	puts "Collecting withdrawn CDM projects"
+	begin	
+		puts "Collecting withdrawn CDM projects"
+		@date_list = Array.new
+		@stakeholder_list = Array.new
+		@country_list = Array.new
 
-	status = Timeout::timeout(20) {
-	wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
-	page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
-	wdr_page = Nokogiri::HTML(page_html)
-	wdr_page_html = wdr_page.css("html body div#container div#content div#cols div#main")
+		status = Timeout::timeout(20) {
+		wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
+		page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+		wdr_page = Nokogiri::HTML(page_html)
+		wdr_page_html = wdr_page.css("html body div#container div#content div#cols div#main")
 
-	wdr_page_html.children[7].search("tr")[1..-1].each do |p|
-		wdr_proj_refno =  p.children[0].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
-		project = Project.where(:refno => wdr_proj_refno).first
-		if !project.blank? then
-			proj_acc_date = Date.parse(p.children[8].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip)
-			proj_wdr_date = Date.parse(p.children[10].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip)
+		wdr_page_html.children[7].search("tr")[1..-1].each do |p|
+			wdr_proj_refno =  p.children[0].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+			project = Project.where(:refno => wdr_proj_refno).first
+			if !project.blank? then
+				proj_acc_date = Date.parse(p.children[8].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip).strftime("%F")
+				proj_wdr_date = Date.parse(p.children[10].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip).strftime("%F")
 
-			# host = p.children[4].children[1].children[1].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+				# host = p.children[4].children[1].children[1].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 
-			desc = "Project submitted to CDM EB"
-			project_id = project.id
-			check_date(proj_acc_date)
-			date_id = @date.id
-			standard_id = project.standards.where(:short_name => "CDM").first.id
-			document_id = nil
+				acc_date = parse_date(proj_acc_date)
+				@date_list << [acc_date.id, "Project submitted to CDM EB", nil]
 
-			project.stakeholders.each do |s|
-				stakeholder_id = s.id
-				project.countries.each do |c|
-					country_id = c.id
-					occasion = Occasion.where(:description => desc, :project_id => project_id, :country_id => country_id, :when_date_id => date_id, :standard_id => standard_id, :document_id => document_id, :stakeholder_id => stakeholder_id).first
-					if !occasion.nil? then
-						puts "Found the Occasion #{occasion.first.desc}"
-					else
-						#Create an occasion for the Document
-						project.occasions.build(:description => desc, :project_id => project_id, :country_id => country_id, :when_date_id => date_id, :standard_id => standard_id, :document_id => document_id, :stakeholder_id => stakeholder_id)
-						puts "Created occasion -#{desc}- for project #{project_id} for country #{country_id} for company #{stakeholder_id} on #{@date.date_string}"
-					project.save!
+				wdr_date = parse_date(proj_wdr_date)
+				@date_list << [wdr_date.id, "Project withdrawn from CDM EB", nil]
+
+				standard = project.standards.where(:short_name => "CDM").first
+				
+				project.stakeholders.each do |s|
+					if !@stakeholder_list.include? s.id
+						@stakeholder_list << s.id
 					end
-					project.save!
 				end
-				project.save!
-			end
-			project.save!
-			
-			desc = "Project withdrawn from CDM EB"
-			check_date(proj_wdr_date)
-			date_id = @date.id
-			
-			project.stakeholders.each do |s|
-				stakeholder_id = s.id
 				project.countries.each do |c|
-					country_id = c.id
-					check_occasion(project, desc, project_id, country_id, date_id, standard_id, document_id, stakeholder_id)
-					project.save!
+					if !@country_list.include? c.id
+						@country_list << c.id
+					end
+				end
+
+				create_ocassions(project, standard, @country_list, @stakeholder_list, @date_list)
+								
+				#Update the crawl record for the project page
+				crawl = Webcrawl.where(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1).first
+				crawl ||= Webcrawl.create!(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1)
+				crawl.save!
+			end
+		end
+		}
+	rescue Timeout::Error
+		puts "Not enough time! Trying again"
+		retry
+	end		
+end
+
+def check_country(country)
+	found_country = "Unknown"
+	country_list = Country.all
+	country_list.each do |c|
+		if country.include? c.name.to_s then
+			found_country = c.name.to_s
+			#puts "found it! #{c.name.to_s}"
+		end
+	end
+	if found_country == "Unknown" then
+		IO.foreach('lib/assets/country_replace.txt') do |line|
+			line.split(/\t/)[1..-1].each do |a|
+				if country.include? a
+					found_country = line.split(/\t/)[0].to_s
 				end
 			end
-			project.save!
-
-			#Update the crawl record for the project page
-			crawl = Webcrawl.where(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1).first
-			crawl ||= Webcrawl.create!(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1)
-			crawl.save!
 		end
-
 	end
-	}
+	
+	#Check if country name exists
+	found_country = Country.where('name = ?', found_country).first
+	#Write in the new country names or return the one found above
+	found_country ||= Country.create!(:name => found_country)
+
+	if !@country_list.include? found_country.id
+		@country_list << found_country.id
+	end
+	found_country
+end
+
+def create_ocassions(project, standard, country_hash = {}, stakeholder_hash = {}, date_hash = {})
+	country_hash.each do |c|
+		stakeholder_hash.each do |s|
+			date_hash.each do |d|
+				occasion = Occasion.where(:description => d[1], :project_id => project.id, :country_id => c, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :stakeholder_id => s).first
+				if !occasion.nil? then
+					puts "Found the occasion #{occasion.description}"
+				else
+					#Create an occasion for the Document
+					project.occasions.build(:description => d[1], :project_id => project.id, :country_id => c, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :stakeholder_id => s)
+					project.save!
+					occasion = Occasion.where(:description => d[1], :project_id => project.id, :country_id => c, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :stakeholder_id => s).first
+					puts "- #{occasion.description} - for project #{occasion.project_id} for #{occasion.country_id} and company #{occasion.stakeholder_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
+				end
+			end
+		end
+	end
 end
 
 def check_date(date)
 	#Check if date exists
-	@date = WhenDate.where('date = ?', date).first
+	found_date = WhenDate.where('date = ?', date).first
 	#Write in the new date or return the one found above
-	@date ||= WhenDate.create!(:date => date)
-
+	found_date ||= WhenDate.create!(:date => DateTime.parse(date.to_s,:utc).change(:offset => "+0200"))
+	
 end
 
-def check_occasion(project, desc, project_id, country_id, date_id, standard_id, document_id, stakeholder_id)
-	
+def parse_period(period)
+	period = period.text
+	if period.index("(") then
+		period = period.gsub(period[period.index("(")..period.index(")")], "")
+	end
+	start_date = DateTime.parse(period[period.index(/[\d]/)..period.index(" -")].gsub(/\n/,"").gsub(/\s{2,}/," ").strip, :utc).change(:offset => "+0200")
+	end_date = DateTime.parse(period[period.index("- ")..-1].gsub(/\n/,"").gsub(/\s{2,}/," ").strip, :utc).change(:offset => "+0200")
+
+	@start_date = check_date(start_date)
+	@end_date = check_date(end_date)
+end
+
+def parse_date(date)
+	date = date.text
+	if date.index("(") then
+		date = date.gsub(date[date.index("(")..date.index(")")], "")
+	end
+	one_date = DateTime.parse(date.strip, :utc).change(:offset => "+0200")
+
+	@one_date = check_date(one_date)
+end
+
+def check_doe(name, short_name, country)
+	#Identify the stakeholder
+	stakeholder = Stakeholder.where('title = ? and short_title = ?', name, short_name).first
+	stakeholder ||= Stakeholder.create!(:title => name, :short_title => short_name, :country_id => country.id)
+	if !@stakeholder_list.include? stakeholder.id
+		@stakeholder_list << stakeholder.id
+	end
+	stakeholder
 end
 
 new_cdm_doe_crawler
@@ -1597,7 +1817,7 @@ new_vcs_doe_crawler
 #vcs_new_page_crawler
 #markit_update_page_crawler
 #markit_new_page_crawler
-# cdm_gsp_page_crawler
+cdm_gsp_page_crawler
 # cdm_gsp_page_updater
 # cdm_cp2_page_crawler
 # cdm_cp2_page_updater
