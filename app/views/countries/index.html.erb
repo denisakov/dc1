@@ -3,6 +3,7 @@
     <tr>
       <th><small><%= sortable "name" %></small></th>
       <th><small><%= sortable "# of projects" %></small></th>
+      
       <th></th>
       <th></th>
       <th></th>
@@ -11,8 +12,9 @@
   <tbody>
     <% @countries.each do |country| %>
       <tr>
-        <td><%= country.name %></td>
+        <td><%= country.name %><small>  (Added at <%= country.updated_at.localtime.strftime('%I:%M:%S') %>)</small></td>
         <td><%= country.projects.count %></td>
+        
         <td><%= link_to 'Show', country %></td>
         <td><%= link_to 'Edit', edit_country_path(country) %></td>
         <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>

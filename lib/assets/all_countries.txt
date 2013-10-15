@@ -1,0 +1,197 @@
+Afghanistan	AF
+Ghana	GH
+Panama	PA
+Albania	AL
+Greece	GR
+Papua New Guinea	PG
+Algeria	DZ
+Grenada	GD
+Paraguay	PY
+Andorra	AD
+Guatemala	GT
+Peru	PE
+Angola	AO
+Guinea	GN
+Philippines	PH
+Antigua and Barbuda	AG
+Guinea-Bissau	GW
+Poland	PL
+Argentina	AR
+Guyana	GY
+Portugal	PT
+Armenia	AM
+Haiti	HT
+Qatar	QA
+Australia	AU
+Holy See	VA
+Republic of Korea	KR
+Austria	AT
+Honduras	HN
+Republic of Moldova	MD
+Azerbaijan	AZ
+Hungary	HU
+Romania	RO
+Bahamas	BS
+Iceland	IS
+Russian Federation	RU
+Bahrain	BH
+India	IN
+Rwanda	RW
+Bangladesh	BD
+Indonesia	ID
+Saint Kitts and Nevis	KN
+Barbados	BB
+Islamic Republic of Iran	IR
+Saint Lucia	LC
+Belarus	BY
+Iraq	IQ
+Saint Vincent and the Grenadines	VC
+Belgium	BE
+Ireland	IE
+Samoa	WS
+Belize	BZ
+Israel	IL
+San Marino	SM
+Benin	BJ
+Italy	IT
+Sao Tome and Principe	ST
+Bhutan	BT
+Jamaica	JM
+Saudi Arabia	SA
+Bolivia	BO
+Japan	JP
+Senegal	SN
+Bosnia and Herzegovina	BA
+Jordan	JO
+Serbia	YU
+Botswana	BW
+Kazakhstan	KZ
+Seychelles	SC
+Brazil	BR
+Kenya	KE
+Sierra Leone	SL
+Brunei Darussalam	BN
+Kiribati	KI
+Singapore	SG
+Bulgaria	BG
+Kuwait	KW
+Slovakia	SK
+Burkina Faso	BF
+Kyrgyzstan	KG
+Slovenia	SI
+Burundi	BI
+People's Democratic Republic of Lao	LA
+Solomon Islands	SB
+Cambodia	KH
+Latvia	LV
+Somalia	SO
+Cameroon	CM
+Lebanon	LB
+South Africa	ZA
+Canada	CA
+Lesotho	LS
+South Sudan	SS
+Cape Verde	CV
+Liberia	LR
+Spain	ES
+Central African Republic	CF
+Libya	LY
+Sri Lanka	LK
+Chad	TD
+Liechtenstein	LI
+Sudan	SD
+Chile	CL
+Lithuania	LT
+Suriname	SR
+China	CN
+Luxembourg	LU
+Swaziland	SZ
+Colombia	CO
+Madagascar	MG
+Sweden	SE
+Comoros	KM
+Malawi	MW
+Switzerland	CH
+Congo	CG
+Malaysia	MY
+Syrian Arab Republic	SY
+Cook Islands	CK
+Maldives	MV
+Tajikistan	TJ
+Costa Rica	CR
+Mali	ML
+Thailand	TH
+Croatia	HR
+Malta	MT
+The former Yugoslav Republic of Macedonia	MK
+Cuba	CU
+Marshall Islands	MH
+Timor-Leste	TP
+Cyprus	CY
+Mauritania	MR
+Togo	TG
+Czech Republic	CZ
+Mauritius	MU
+Tonga	TO
+Côte d'Ivoire	CI
+Mexico	MX
+Trinidad and Tobago	TT
+Federated States of Micronesia	FM
+Tunisia	TN
+Democratic Republic of the Congo	CD
+Monaco	MC
+Turkey	TR
+Denmark	DK
+Mongolia	MN
+Turkmenistan	TM
+Djibouti	DJ
+Montenegro	ME
+Tuvalu	TV
+Dominica	DM
+Morocco	MA
+Uganda	UG
+Dominican Republic	DO
+Mozambique	MZ
+Ukraine	UA
+Ecuador	EC
+Myanmar	MM
+United Arab Emirates	AE
+Egypt	EG
+Namibia	NA
+United Kingdom of Great Britain and Northern Ireland	GB
+El Salvador	SV
+Nauru	NR
+United Republic of Tanzania	TZ
+Equatorial Guinea	GQ
+Nepal	NP
+United States of America	US
+Eritrea	ER
+Netherlands	NL
+Uruguay	UY
+Estonia	EE
+New Zealand	NZ
+Uzbekistan	UZ
+Ethiopia	ET
+Nicaragua	NI
+Vanuatu	VU
+European Union	EU
+Niger	NE
+Bolivarian Republic of Venezuela	VE
+Fiji	FJ
+Nigeria	NG
+Viet Nam	VN
+Finland	FI
+Niue	NU
+Yemen	YE
+France	FR
+Norway	NO
+Zambia	ZM
+Gabon	GA
+Oman	OM
+Zimbabwe	ZW
+Gambia	GM
+Pakistan	PK
+Georgia	GE
+Palau	PW
+Germany	DE
+Palestine	PS

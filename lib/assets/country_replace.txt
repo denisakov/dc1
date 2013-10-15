@@ -1,2 +1,4 @@
 United States of America	U.S.	U.S.A.	USA	United States
 China	PRC	PRChina	Republic of China Peoples Republic of China	P.R.C.	P.R.C
+United Kingdom of Great Britain and Northern Ireland	United Kingdom	UK	Britain	Great Britain	U.K.
+Brazil	Brasil

@@ -7,7 +7,9 @@
 
 <p>
   <b>Project:</b>
-  <%= @country.project_id %>
+  <% @country.projects.each do |p| %>
+	  <%= link_to p.refno, project_path(p) %>
+  <% end %>
 </p>
 
 
