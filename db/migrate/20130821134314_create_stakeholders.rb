@@ -1,12 +1,12 @@
 class CreateStakeholders < ActiveRecord::Migration
   def change
     create_table :stakeholders do |t|
-      t.text :title
-      t.string :short_title
-      t.references :country
+      t.string :role
+      t.references :project
+      t.references :entity
 
       t.timestamps
     end
-    add_index :stakeholders, :country_id
+    add_index :stakeholders, [:project_id, :entity_id] 
   end
 end

@@ -40,7 +40,11 @@
       <% if p.roles.where(:role => "Investor") then %>
         <% p.roles.where(:role => "Investor").each do |x| %>
           <% p.countries.where(:id => x.country_id).each do |y| %>
-            - <%= y.name %> <br />
+            <% if y.name == "United Kingdom of Great Britain and Northern Ireland" then %>
+              -&nbsp;<%= "UK" %><br />
+            <% else %>
+              -&nbsp;<%= y.name %><br />
+            <% end %>
           <% end %>
         <% end %>
       <% end %>

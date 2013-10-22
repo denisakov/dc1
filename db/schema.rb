@@ -33,25 +33,24 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
   add_index "documents", ["project_id", "process_type"], :name => "index_documents_on_project_id_and_process_type"
 
   create_table "entities", :force => true do |t|
-    t.string   "role"
-    t.integer  "project_id"
-    t.integer  "stakeholder_id"
-    t.datetime "created_at",     :null => false
-    t.datetime "updated_at",     :null => false
+    t.text     "title"
+    t.string   "short_title"
+    t.integer  "country_id"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
   end
 
-  add_index "entities", ["project_id", "stakeholder_id"], :name => "index_entities_on_project_id_and_stakeholder_id"
+  add_index "entities", ["country_id"], :name => "index_entities_on_country_id"
 
   create_table "occasions", :force => true do |t|
     t.text     "description"
     t.integer  "project_id"
-    t.integer  "country_id"
     t.integer  "when_date_id"
     t.integer  "document_id"
     t.integer  "standard_id"
-    t.integer  "stakeholder_id"
-    t.datetime "created_at",     :null => false
-    t.datetime "updated_at",     :null => false
+    t.integer  "entity_id"
+    t.datetime "created_at",   :null => false
+    t.datetime "updated_at",   :null => false
   end
 
   create_table "projects", :force => true do |t|
@@ -74,14 +73,14 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
   add_index "roles", ["project_id", "country_id"], :name => "index_roles_on_project_id_and_country_id"
 
   create_table "stakeholders", :force => true do |t|
-    t.text     "title"
-    t.string   "short_title"
-    t.integer  "country_id"
-    t.datetime "created_at",  :null => false
-    t.datetime "updated_at",  :null => false
+    t.string   "role"
+    t.integer  "project_id"
+    t.integer  "entity_id"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
   end
 
-  add_index "stakeholders", ["country_id"], :name => "index_stakeholders_on_country_id"
+  add_index "stakeholders", ["project_id", "entity_id"], :name => "index_stakeholders_on_project_id_and_entity_id"
 
   create_table "standards", :force => true do |t|
     t.text     "name"

@@ -7,10 +7,10 @@
           <input type="checkbox" value="">
         </label>
       </th>
-      <th><small>Title</small></th>
-      <th><small>Short title</small></th>
-      <th><small>HQ country</small></th>
-      <th><small>No. of projects</small></th>
+      <th><small>Project RefNo</small></th>
+      <th><small>Entity</small></th>
+      <th><small>Role</small></th>
+      
       <th></th>
       
       <th></th>
@@ -25,10 +25,10 @@
         <input type="checkbox" value="">
       </label>
     </td>
-    <td><%= link_to stakeholder.title, stakeholder %></td>
-    <td><%= stakeholder.short_title %></td>
-    <td><%= stakeholder.country.name %></td>
-    <td><%= stakeholder.projects.count %></td>
+    <td><%= Project.where('id = ?', stakeholder.project_id).first.refno %></td>
+    <td><%= Entity.where('id = ?', stakeholder.entity_id).first.title %></td>
+    <td><%= stakeholder.role %></td>
+    
     <td><%= link_to 'Edit', edit_stakeholder_path(stakeholder) %></td>
     <td><%= link_to 'Destroy', stakeholder, method: :delete, data: { confirm: 'Are you sure?' } %></td>
   </tr>
@@ -38,4 +38,4 @@
 
 <br />
 
-<%= link_to 'New Stakeholder', new_stakeholder_path %>
+<%= link_to 'New stakeholder', new_stakeholder_path %>

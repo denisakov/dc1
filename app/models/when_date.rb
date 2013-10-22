@@ -2,14 +2,13 @@ class WhenDate < ActiveRecord::Base
   attr_accessible :date
   has_many :occasions, :inverse_of => :project
   has_many :projects, :through => :occasions
-  has_many :occasions, :inverse_of => :country
-  has_many :countries, :through => :occasions
+  
   has_many :occasions, :inverse_of => :document
   has_many :documents, :through => :occasions
   has_many :occasions, :inverse_of => :standard
   has_many :standards, :through => :occasions
-  has_many :occasions, :inverse_of => :stakeholder
-  has_many :stakeholders, :through => :occasions
+  has_many :occasions, :inverse_of => :entity
+  has_many :entities, :through => :occasions
 
   require 'chronic'
 

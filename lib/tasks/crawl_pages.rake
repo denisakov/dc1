@@ -99,8 +99,8 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 	webcrawls.each do |crawl|
 		t=20
 		begin
-			@country_list = Array.new
-			@stakeholder_list = Array.new
+			
+			@entity_list = Array.new
 			@date_list = Array.new
 			gsp_page_url = crawl.url
 
@@ -275,10 +275,10 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						
 						@val_doe = check_doe(doe_name, short_doe_name, doe_country.id)
 						
-						#Define the role of the Stakeholder in the project
-						sth_role = "val_doe"
+						#Define the role of the entity in the project
+						ent_role = "val_doe"
 
-						project.entities.build(:project_id => project.id, :stakeholder_id => @val_doe.id, :role => sth_role)
+						project.stakeholders.build(:project_id => project.id, :entity_id => @val_doe.id, :role => ent_role)
 						puts "#{@val_doe.id} #{doe_name} - Validating DOE"
 						
 						project.save!
@@ -410,7 +410,7 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					puts "Associated pages updated with project id #{project.id}"
 				end
 			}
-			create_ocassions(@project, @standard, @country_list, @stakeholder_list, @date_list)
+			create_occasions(@project, @standard, @entity_list, @date_list)
 			@project.save!
 
 		rescue Timeout::Error
@@ -457,6 +457,7 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 		puts "There were some timeouts."
 		#Selecting all pages with timeouts so far
 		webcrawls = Webcrawl.find(@timed_out)
+		@timed_out = {}
 		#Calling the same method but only with the timed out pages
 		cdm_gsp_page_crawler(webcrawls)
 	#No timeouts
@@ -1081,8 +1082,8 @@ def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status
  	puts "Collecting new CDM DOEs"
 	webcrawls.each do |crawl|
 		begin
-			@country_list = Array.new
-			@stakeholder_list = Array.new
+			
+			@entity_list = Array.new
 			@date_list = Array.new
 
 			cdm_doe_page_url = crawl.url
@@ -1129,7 +1130,7 @@ def new_cdm_doe_crawler(webcrawls = Webcrawl.where(:source => "cdm_doe", :status
 
 				puts "#{doe_country.name}"
 
-				#Check if stakeholder exists
+				#Check if stakeholder exists and create it
 				stakeholder = check_doe(doe_name, short_doe_name, doe_country.id)
 
 				#Update the crawl record for the project page
@@ -1234,7 +1235,7 @@ def new_vcs_doe_crawler(webcrawls = Webcrawl.where(:source => "vcs_doe", :status
 
 				puts "#{doe_country.name}"
 	
-				#Check if stakeholder exists
+				#Check if entity exists
 				stakeholder = check_doe(doe_name, short_doe_name, doe_country.id)
 				
 				puts "New company added #{stakeholder.title}"
@@ -1630,19 +1631,19 @@ def define_pp(country, project, role, hash = {})
 		if c =~ /\u0028withdrawn\u0029|\u0028 withdrawn\u0029|\u0028 withdrawn \u0029|\u0028withdrawn\u0029/ then
 			pp_name = c.gsub(" (withdrawn)", "").gsub("(withdrawn)", "").gsub("( withdrawn)", "").gsub("(withdrawn) ", "").gsub("(withdrawn )", "").gsub("( withdrawn )", "").strip
 		end
-		#Check if stakeholder exists
-		stakeholder = Stakeholder.where('title = ?', pp_name).first
+		#Check if entity exists
+		entity = Entity.where('title = ?', pp_name).first
 		#Create a new DOE if it doesn't exist yet
-		stakeholder ||= Stakeholder.create!(:title => pp_name, :country_id => country.id)
+		entity ||= Entity.create!(:title => pp_name, :country_id => country.id)
 
-		project.entities.build(:project_id => project.id, :stakeholder_id => stakeholder.id, :role => role)
+		project.stakeholders.build(:project_id => project.id, :entity_id => entity.id, :role => role)
 		project.save!
-		puts "Stakeholder #{Stakeholder.where('title = ?', pp_name).first.title} was connected to the project #{project.id} as #{role}"
+		puts "entity #{entity.title} was connected to the project #{project.id} as #{role}"
 
-		if !@stakeholder_list.include? stakeholder.id
-			@stakeholder_list << stakeholder.id
+		if !@entity_list.include? entity.id
+			@entity_list << entity.id
 		end
-		stakeholder.save!
+		entity.save!
 	end
 end
 
@@ -1650,8 +1651,8 @@ def cdm_withdrawn_crawler
 	begin	
 		puts "Collecting withdrawn CDM projects"
 		@date_list = Array.new
-		@stakeholder_list = Array.new
-		@country_list = Array.new
+		@entity_list = Array.new
+		
 
 		status = Timeout::timeout(20) {
 		wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
@@ -1676,18 +1677,14 @@ def cdm_withdrawn_crawler
 
 				standard = project.standards.where(:short_name => "CDM").first
 				
-				project.stakeholders.each do |s|
-					if !@stakeholder_list.include? s.id
-						@stakeholder_list << s.id
+				project.entities.each do |s|
+					if !@entity_list.include? s.id
+						@entity_list << s.id
 					end
 				end
-				project.countries.each do |c|
-					if !@country_list.include? c.id
-						@country_list << c.id
-					end
-				end
+				
 
-				create_ocassions(project, standard, @country_list, @stakeholder_list, @date_list)
+				create_occasions(project, standard, @entity_list, @date_list)
 								
 				#Update the crawl record for the project page
 				crawl = Webcrawl.where(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1).first
@@ -1733,29 +1730,25 @@ def check_country(country)
 		final_country ||= Country.create!(:name => country)
 	end	
 
-	if !@country_list.include? final_country.id
-		@country_list << final_country.id
-	end
 	final_country
 end
 
-def create_ocassions(project, standard, country_hash = {}, stakeholder_hash = {}, date_hash = {})
-	country_hash.each do |c|
-		stakeholder_hash.each do |s|
+def create_occasions(project, standard, entity_hash = {}, date_hash = {})
+	
+		entity_hash.each do |s|
 			date_hash.each do |d|
-				occasion = Occasion.where(:description => d[1], :project_id => project.id, :country_id => c, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :stakeholder_id => s).first
+				occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
 				if !occasion.nil? then
 					puts "Found the occasion #{occasion.description}"
 				else
 					#Create an occasion for the Document
-					project.occasions.build(:description => d[1], :project_id => project.id, :country_id => c, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :stakeholder_id => s)
+					project.occasions.build(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s)
 					project.save!
-					occasion = Occasion.where(:description => d[1], :project_id => project.id, :country_id => c, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :stakeholder_id => s).first
-					puts "- #{occasion.description} - for project #{occasion.project_id} for #{occasion.country_id} and company #{occasion.stakeholder_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
+					occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
+					puts "- #{occasion.description} - for project #{occasion.project_id} for company #{occasion.entity_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
 				end
 			end
 		end
-	end
 end
 
 def check_date(date)
@@ -1790,13 +1783,13 @@ def parse_date(date)
 end
 
 def check_doe(name, short_name, country_id)
-	#Identify the stakeholder
-	stakeholder = Stakeholder.where('title = ? and short_title = ?', name, short_name).first
-	stakeholder ||= Stakeholder.create!(:title => name, :short_title => short_name, :country_id => country_id)
-	if !@stakeholder_list.include? stakeholder.id
-		@stakeholder_list << stakeholder.id
+	#Identify the entity
+	entity = Entity.where('title = ? and short_title = ?', name, short_name).first
+	entity ||= Entity.create!(:title => name, :short_title => short_name, :country_id => country_id)
+	if !@entity_list.include? entity.id
+		@entity_list << entity.id
 	end
-	stakeholder
+	entity
 end
 
 new_cdm_doe_crawler

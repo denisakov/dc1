@@ -21,9 +21,9 @@
 </p>
 <p>
 	<b>Validating DOE:</b>
-	<% @project.entities.where(:role => "val_doe").each do |e| %>
-		<% if e.stakeholder %>
-			<%= e.stakeholder.title %>
+	<% @project.stakeholders.where(:role => "val_doe").each do |e| %>
+		<% if e.entity %>
+			<%= e.entity.title %>
 		<% else %>
 			<%= "Unknown" %>
 		<% end %>
@@ -31,9 +31,9 @@
 </p>
 <p>
 	<b>Verifying DOEs:</b>
-	<% @project.entities.where(:role => "ver_doe").each do |e| %>
-		<% if e.stakeholder %>
-			<%= e.stakeholder.title %>
+	<% @project.stakeholders.where(:role => "ver_doe").each do |e| %>
+		<% if e.entity %>
+			<%= e.entity.title %>
 		<% else %>
 			<%= "Unknown" %>
 		<% end %>
@@ -47,9 +47,9 @@
 		<%= "Unknown" %>
 	<% end %>
 	<%= "(" %>
-	<% @project.entities.where(:role => "host_pp").each do |e| %>
-		<% if e.stakeholder %>
-			<%= link_to e.stakeholder.title + ";", stakeholder_path(e.stakeholder) %>
+	<% @project.stakeholders.where(:role => "host_pp").each do |e| %>
+		<% if e.entity %>
+			<%= link_to e.entity.title + ";", entity_path(e.entity) %>
 		<% else %>
 			<%= "Unknown" %>
 		<% end %>
@@ -65,10 +65,10 @@
 	        <ul>
 				<b><%= r.country.name %></b>
 				<%= "(" %>
-					<% @project.entities.where(:role => "a1_pp").each do |e| %>
-						<% if e.stakeholder %>
-							<% if e.stakeholder.country == r.country %>
-								<%= link_to e.stakeholder.title + ";", stakeholder_path(e.stakeholder) %>
+					<% @project.stakeholders.where(:role => "a1_pp").each do |e| %>
+						<% if e.entity %>
+							<% if e.entity.country == r.country %>
+								<%= link_to e.entity.title + ";", entity_path(e.entity) %>
 							<% end %>
 						<% else %>
 							<%= "Unknown" %>

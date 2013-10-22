@@ -1,10 +1,5 @@
 class Stakeholder < ActiveRecord::Base
-  attr_accessible :short_title, :title, :country_id
-  belongs_to :country
-
-  has_many :entities, :inverse_of => :project
-  has_many :projects, :through => :entities
-
-  has_many :occasions, :inverse_of => :when_date
-  has_many :when_dates, :through => :occasions
+  attr_accessible :role, :project_id, :entity_id
+  belongs_to :project
+  belongs_to :entity
 end

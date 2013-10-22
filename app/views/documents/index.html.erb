@@ -1,15 +1,15 @@
 (<%= @documents.count %>)
-<%= will_paginate @documents, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+<%= will_paginate @documents, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %><br />
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
-      <th><%= sortable "title" %></th>
-      <th><%= sortable "short_title" %></th>
-      <th><%= sortable "process_type", "Process" %></th>
+      <th><small><%= sortable "title" %></small></th>
+      <th><small><%= sortable "short_title" %></small></th>
+      <th><small><%= sortable "process_type", "Process" %></small></th>
       <!-- <th><%= sortable "when_dates.date", "Issue date" %></th> -->
-      <th><%= sortable "when_dates.date", "Upload date" %></th>
-      <th>Standard</th>
-      <th><%= sortable "project_id", "Project ID" %></th>
+      <th><small><%= sortable "when_dates.date", "Upload date" %></small></th>
+      <th><small>Standard</small></th>
+      <th><small><%= sortable "project_id", "Project ID" %></small></th>
       <th></th>
     </tr>
 </thead>
@@ -20,14 +20,13 @@
     <td><%= link_to document.short_title, document.link %></td>
     <td><%= document.process_type %></td>
     <td>
-        <% document.occasions.each do |o| %>
+      <% document.occasions.each do |o| %>
         <% if o.description =~ /issue/i %>
-        <!--   <td><%= WhenDate.find(o.when_date_id).date.localtime.to_formatted_s(:just_date) %></td> -->
+          <td><%= WhenDate.find(o.when_date_id).date.localtime.to_formatted_s(:just_date) %></td>
         <% elsif o.description =~ /upload/i && WhenDate.find(o.when_date_id)%>
           <%= WhenDate.find(o.when_date_id).date.localtime.to_formatted_s(:just_date) %>
         <% else %>
           <%= "?" %>
-          
         <% end %>
       <% end %>
     </td>

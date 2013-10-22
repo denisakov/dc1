@@ -7,6 +7,6 @@ class Project < ActiveRecord::Base
   has_many :webcrawls
   has_many :occasions, :inverse_of => :when_date
   has_many :when_dates, :through => :occasions
-  has_many :entities, :inverse_of => :stakeholder
-  has_many :stakeholders, :through => :entities
+  has_many :stakeholders, :inverse_of => :entity
+  has_many :entities, :through => :stakeholders
 end

@@ -10,7 +10,7 @@
 <div class="row-fluid"  style="margin-bottom: 10px">
 	<div>
 		<a data-toggle="collapse" data-target="#collapse<%= d.id %>" href="#collapse<%= d.id %>">
-			<h5><%= d.title %> (<%= d.when_dates.first.date_string %>)</h5>
+			<h5><%= d.title %> (<% if d.when_dates.first then %><%= d.when_dates.first.date %><% end %> )</h5>
 		</a>
 	</div>
 	<div id="collapse<%= d.id %>" class="collapse">

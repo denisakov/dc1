@@ -5,7 +5,7 @@
   <thead>
     <tr>
       <th>Date</th>
-      <th>Countries</th>
+      
       <th>Projects</th>
       <th>Occasions</th>
       <th>Documents</th>
@@ -28,10 +28,7 @@
         <%= "NONE" %>
       <% end %>  
     </td>
-    <td><% when_date.countries.each do |c| %>
-          - <%= c.name %><br />
-        <% end %>
-    </td>
+    
     <td><% when_date.projects.each do |p| %>
           - <%= p.standards.first.short_name %><%= p.refno %><br />
         <% end %>
@@ -44,7 +41,7 @@
           - <%= d.title %><br />
           <% end %>
     </td>
-    <td><% when_date.stakeholders.each do |s| %>
+    <td><% when_date.entities.each do |s| %>
           <small>- <%= s.title %><br /></small>
           <% end %>
     </td>

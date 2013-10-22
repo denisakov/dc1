@@ -1,23 +1,41 @@
-<h1>Listing entities</h1>
-
-<table>
-  <tr>
-    <th>Role</th>
-    <th></th>
-    <th></th>
-    <th></th>
-  </tr>
+(<%= @entities.count %>)
+<table class="table table-condensed table-hover">
+  <thead>
+    <tr>
+      <th>
+        <label class="checkbox">
+          <input type="checkbox" value="">
+        </label>
+      </th>
+      <th><small>Title</small></th>
+      <th><small>Short title</small></th>
+      <th><small>HQ country</small></th>
+      <th><small>No. of projects</small></th>
+      <th></th>
+      
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
 
 <% @entities.each do |entity| %>
   <tr>
-    <td><%= entity.role %></td>
-    <td><%= link_to 'Show', entity %></td>
+    <td>
+      <label class="checkbox">
+        <input type="checkbox" value="">
+      </label>
+    </td>
+    <td><%= link_to entity.title, entity %></td>
+    <td><%= entity.short_title %></td>
+    <td><%= entity.country.name %></td>
+    <td><%= entity.projects.count %></td>
     <td><%= link_to 'Edit', edit_entity_path(entity) %></td>
     <td><%= link_to 'Destroy', entity, method: :delete, data: { confirm: 'Are you sure?' } %></td>
   </tr>
 <% end %>
+</tbody>
 </table>
 
 <br />
 
-<%= link_to 'New Entity', new_entity_path %>
+<%= link_to 'New entity', new_entity_path %>
