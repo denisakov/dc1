@@ -17,6 +17,7 @@
       <th><small>Host Party</small></th> <!--<%= sortable "countries.name", "Host Party" %>-->
       <th><small><%= "Annex-I Party" %></small></th>
       <th></th>
+      <th></th>
     </tr>
   </thead>
 <tbody>
@@ -27,7 +28,13 @@
         <input type="checkbox" value="">
       </label>
     </td>
-    <td><%= p.standards.first.short_name %></td>
+    <td>
+      <% if p.standards.first.nil? then %> 
+        <%= "Unknown" %>
+      <% else %>
+        <%= p.standards.first.short_name %>
+      <% end %>
+    </td>
     <td valign="top"><%= link_to p.refno, p.webcrawls.first.url if !p.webcrawls.first.nil? %></td>
     <td valign="top"><small><%= link_to p.title, project_path(p) %></small></td>
     <td><%= p.documents.count %></td>
@@ -50,6 +57,7 @@
       <% end %>
     </td>
     <td><%= link_to 'Edit', edit_project_path(p), :class => 'btn btn-mini' %></td>
+    <td><%= link_to 'Destroy', p, method: :delete, data: { confirm: 'Are you sure?' }, :class => 'btn btn-mini' %></td>
   </tr>
 <% end %>
 </tbody>

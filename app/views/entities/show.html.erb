@@ -1,10 +1,33 @@
 <p id="notice"><%= notice %></p>
 
 <p>
-  <b>Role:</b>
-  <%= @entity.role %>
+	<b>Title:</b>
+	<%= @entity.title %>
+</p>
+
+<% if @entity.short_title %>
+<p>
+	<b>Short title:</b>
+	<%= @entity.short_title %>
+</p>
+<% end %>
+
+<p>
+	<b>Auth. country:</b>
+	<%= @entity.country.name %>
+</p>
+<p>
+	<b>Projects:</b>
+	<% @entity.projects.each do |p| %>
+		<% if p.refno then %>
+			<small><%= link_to p.refno, project_path(p) %>, </small>
+		<% else %>
+			<%= "None" %>
+		<% end %>
+	<% end %>
 </p>
 
 
+
 <%= link_to 'Edit', edit_entity_path(@entity) %> |
-<%= link_to 'Back', entities_path %>
+<%= link_to 'Back', stakeholders_path %>

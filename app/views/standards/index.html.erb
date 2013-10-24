@@ -4,7 +4,7 @@
     <tr>
       <th>Name</th>
       <th>Short name</th>
-      <th>Project</th>
+      <th>Projects</th>
       <th></th>
     </tr>
   </thead>
@@ -12,7 +12,7 @@
   <tr>
     <td><%= standard.name %></td>
     <td><%= standard.short_name %></td>
-    <td><%= standard.project.id %></td>
+    <td><%= standard.projects.count %></td>
     
     <td><%= link_to 'Edit', edit_standard_path(standard) %></td>
     

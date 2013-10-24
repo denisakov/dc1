@@ -1,5 +1,8 @@
 Dc1::Application.routes.draw do
 
+  resources :schemes
+
+
   resources :entities
 
 

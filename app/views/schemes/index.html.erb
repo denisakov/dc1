@@ -1,0 +1,23 @@
+<h1>Listing schemes</h1>
+
+<table>
+  <tr>
+    <th>Desc</th>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @schemes.each do |scheme| %>
+  <tr>
+    <td><%= scheme.desc %></td>
+    <td><%= link_to 'Show', scheme %></td>
+    <td><%= link_to 'Edit', edit_scheme_path(scheme) %></td>
+    <td><%= link_to 'Destroy', scheme, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Scheme', new_scheme_path %>

@@ -72,6 +72,14 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
 
   add_index "roles", ["project_id", "country_id"], :name => "index_roles_on_project_id_and_country_id"
 
+  create_table "schemes", :force => true do |t|
+    t.text     "desc"
+    t.integer  "project_id"
+    t.integer  "standard_id"
+    t.datetime "created_at",  :null => false
+    t.datetime "updated_at",  :null => false
+  end
+
   create_table "stakeholders", :force => true do |t|
     t.string   "role"
     t.integer  "project_id"
@@ -84,7 +92,6 @@ ActiveRecord::Schema.define(:version => 20130821134314) do
 
   create_table "standards", :force => true do |t|
     t.text     "name"
-    t.integer  "project_id"
     t.string   "short_name"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false

@@ -214,10 +214,12 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => cdm_proj_scale, :fee => cdm_fee)
 				@project = project
 				std_name = "Clean Development Mechanism"
-				short_std_name = "CDM"
+				srt_name = "CDM"
 				#Write the standard name
-				standard = Standard.create!(:name => std_name, :short_name => short_std_name, :project_id => project.id)
-				@standard = standard
+				@standard = check_standard(std_name, srt_name)
+
+				check_scheme("", project, @standard)
+				
 				puts "#{project.id}, CDM#{cdm_proj_id}, #{cdm_proj_title}, #{cdm_proj_scale}, $#{cdm_fee}"
 				
 				#Analyse the block of "Host country"
@@ -658,11 +660,13 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 					project.save!
 
 					std_name = "Verified Carbon Standard"
-					short_std_name = "VCS"
+					srt_name = "VCS"
 					#Write the standard name
-					standard = Standard.create(:name => std_name, :short_name => short_std_name, :project_id => project.id)
+					@standard = check_standard(std_name, srt_name)
+
+					check_scheme("", project, @standard)
 					
-					issue_date = "01.01.2000"
+					issue_date = @default_date
 					
 					if !vcs_page_html.search("td:nth-child(1) a").empty? then
 						#Set the process type
@@ -923,23 +927,28 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						country_name = "Unknown"
 					end
 					#Find the name of the standard
-					standard = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
+					std_name = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
 					#Identify which standard it is to see which short name to use
-					short_standard = standard
-					if standard == "Gold Standard"
-						short_standard = "GS"
+					srt_name = standard
+					if std_name == "Gold Standard"
+						srt_name = "GS"
 					end
-					if standard == "Social Carbon"
-						short_standard = "SC"
+					if std_name == "Social Carbon"
+						srt_name = "SC"
 					end
-					if standard == "Verified Carbon Standard"
-						short_standard = "VCS"
+					if std_name == "Verified Carbon Standard"
+						srt_name = "VCS"
 					end
 					#Find the project reference number
 					proj_id = id.text.delete "(ID: )"
 						#puts proj_id
+
+
+					#CHECK IF THE PROJECT EXISTS #################################################
 					#Create a new project record
 					project = Project.create!(:title => title, :refno => proj_id)
+					
+
 					#Check if country name exists
 					country = Country.where('name = ?', country_name).first
 					#Write in the new country names or return the one found above
@@ -951,9 +960,13 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					#Save the database entries
 					project.save!
 					#Write the standard name
-					standard = Standard.create(:name => standard, :short_name => short_standard, :project_id => project.id)
+					
+					@standard = check_standard(std_name, srt_name)
+
+					check_scheme("", project, @standard)
+
 					#Define the issue date of the document
-					issue_date = "01.01.2000"
+					issue_date = @default_date
 					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links					
 					mark_page_html.css(".doc").each do |d|
 						doc_url = d['href'].strip.prepend("http://mer.markit.com")
@@ -1653,7 +1666,6 @@ def cdm_withdrawn_crawler
 		@date_list = Array.new
 		@entity_list = Array.new
 		
-
 		status = Timeout::timeout(20) {
 		wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
 		page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
@@ -1749,6 +1761,25 @@ def create_occasions(project, standard, entity_hash = {}, date_hash = {})
 				end
 			end
 		end
+end
+
+def check_standard(std_name, srt_name)
+	#Check if standard exists
+	found_standard = Standard.where('name = ?', std_name).first
+	#Write in the new standard or return the one found above
+	found_standard ||= Standard.create!(:name => std_name, :short_name => srt_name)
+end
+
+def check_scheme(desc, project, standard)
+	#Check if scheme exists
+	found_scheme = Scheme.where('project_id = ? and standard_id = ?', project.id, standard.id).first
+	if !found_scheme.nil? then
+		puts "The project #{project_id} was listed under this #{standard.short_name} already"
+	else
+		#Write in the new scheme or return the one found above
+		standard.schemes.build(:desc => desc, :project_id => project.id, :standard_id => standard.id)
+		standard.save!
+	end
 end
 
 def check_date(date)
