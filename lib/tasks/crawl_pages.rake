@@ -10,7 +10,7 @@ namespace :crawl do
     @timed_out = Array.new
     @agent = Mechanize.new
 	@agent.idle_timeout = 0.9
-	@default_date = "01.01.2000"
+	@default_date = "01.01.1990"
 
 def cdm_gsp_page_updater(webcrawls = Webcrawl.where(:source => "cdm_gsp", :status_code => 2))
  	puts "Updating the CDM project data"
@@ -632,137 +632,132 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 	puts "Collecting new VCS pproject data"
 	webcrawls.each do |crawl|
 		begin
+			@entity_list = Array.new
+			@date_list = Array.new
 			vcs_page_url = crawl.url
+			puts "#{vcs_page_url}"
 			status = Timeout::timeout(20) {
 				@agent.get(vcs_page_url)
 				@agent.page.encoding = 'ISO-8859-1'
 				@agent.page.encoding = 'cp1252'
 				vcs_page_html = @agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
+				if !vcs_page_html.empty?
+					title_plus_country = vcs_page_html.search("h1").text.encode!("utf-8", "utf-8", :invalid => :replace)
+					vcs_host_country = vcs_page_html.search(".country").text.encode!("utf-8", "utf-8", :invalid => :replace)
+					vcs_proj_title = title_plus_country.sub(", " + vcs_host_country, "")
+					#Find the project reference number
+					vcs_proj_id = "%.4i" %vcs_page_html.search("dd:nth-child(2)").text.delete("^0-9")
+					#check if the project is empty record
+					puts "Starting with the project #{vcs_proj_id}"
+					if !vcs_proj_title.empty? and !vcs_host_country.empty? and !vcs_proj_title.downcase.include? "error" then
+						#Create a new project record
+						project = Project.create!(:title => vcs_proj_title, :refno => vcs_proj_id)
+						@project = project
+						#Check if country name exists
+						country = check_country(vcs_host_country)
+						
+						role = "Host"
+						#Create a role for the country in the project
+						project.roles.build(:country_id => country.id, :role => role)
+						#Save the database entries
+						project.save!
+
+						std_name = "Verified Carbon Standard"
+						
+						#Write the standard name
+						@standard = check_standard(std_name)
+
+						check_scheme("", project, @standard)
+						#Check if date exists
+						issue_date = parse_date(@default_date)
+						
+						if !vcs_page_html.search("td:nth-child(1) a").empty? then
+							#Set the process type
+							process_type = "Registration"
+							#Grab all registration documents
+							vcs_page_html.search("td:nth-child(1) a").each do |d|
+								#Find the document's URL
+								doc_url = d['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
+								#Find the title of the document
+								doc_title = d.inner_text
+								short_doc_title = ""
+								
+								#Create a document
+								document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+
+								@date_list << [issue_date.id, "Issue date", document.id]
+
+								#Grab the Upload date
+								if d.parent.parent.last_element_child.inner_text !~ /VCS/ then
+									doc_upload_date = parse_date(d.parent.parent.last_element_child.inner_text)
+									puts "#{doc_upload_date.date} - #{doc_title} - #{process_type}"
+								else
+									doc_upload_date = parse_date(@default_date)
+								end
+								
+								#Create an occasion for the date in the project, document
+								@date_list << [doc_upload_date.id, "Upload date", document.id]
+							end
+						end
+						
+						if !vcs_page_html.search("td:nth-child(2) a").empty? then
+							#Grab all registration documents
+							vcs_page_html.search("td:nth-child(2) a").each do |d|
+								#Find the document's URL
+								doc_url = d.parent.last_element_child['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
+								#Find the title of the document
+								doc_title = d.parent.parent.first_element_child.text
+
+								short_doc_title = ""
+								
+								#Write project url into the database
+								if d.parent.parent.first_element_child.parent.parent.parent.first_element_child.text == "Issuance Documents"
+									process_type = "Issuance"
+								else
+									process_type = "Unknown"
+								end
+								#Check if date exists
+								issue_date = parse_date(@default_date)
+								#Create a document
+								document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+								#Create an occasion for the date in the project, country, document and standard
+								@date_list << [issue_date.id, "Issue date", document.id]
+
+								#Grab the Upload date
+								if d.parent.parent.last_element_child.inner_text !~ /VCS/ then
+									doc_upload_date = parse_date(d.parent.parent.last_element_child.inner_text)
+									puts "#{doc_upload_date.date} - #{doc_title} - #{process_type}"
+								else
+									doc_upload_date = parse_date(@default_date)
+								end
+								
+								#Create an occasion for the date in the project, document
+								@date_list << [doc_upload_date.id, "Upload date", document.id]
+							end
+						end
+						#Save the database entries
+						project.save!
+
+						vcs_page_html = vcs_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
+						crawl.update_attributes(:html => vcs_page_html, :project_id => project.id, :status_code => 2)
+						crawl.touch
+						crawl.save
+						puts "#{vcs_proj_id}. #{vcs_proj_title} - #{vcs_host_country} - Project ID #{project.id}"
+					else
+						vcs_page_html = vcs_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
+						crawl.update_attributes(:html => vcs_page_html, :project_id => vcs_proj_id, :status_code => 5)
+						crawl.touch
+						crawl.save
+						puts "#{vcs_proj_id}. #{vcs_proj_title} - #{vcs_host_country} - Erroneous or incomplete record"
+					end
 				
-				title_plus_country = vcs_page_html.search("h1").text.encode!("utf-8", "utf-8", :invalid => :replace)
-				vcs_host_country = vcs_page_html.search(".country").text.encode!("utf-8", "utf-8", :invalid => :replace)
-				vcs_proj_title = title_plus_country.sub(", " + vcs_host_country, "")
-				#Find the project reference number
-				vcs_proj_id = "%.4i" %vcs_page_html.search("dd:nth-child(2)").text.delete("^0-9")
-				#check if the project is empty record
-				puts "Starting with the project #{vcs_proj_id}"
-				if !vcs_proj_title.empty? and !vcs_host_country.empty? and !vcs_proj_title.downcase.include? "error" then
-					#Create a new project record
-					project = Project.create!(:title => vcs_proj_title, :refno => vcs_proj_id)
-					#Check if country name exists
-					country = Country.where('name = ?', vcs_host_country).first
-					#Write in the new country names or return the one found above
-					country ||= Country.create(:name => vcs_host_country)
-					role = "Host"
-					#Create a role for the country in the project
-					project.roles.build(:country_id => country.id, :role => role)
-					#Save the database entries
-					project.save!
-
-					std_name = "Verified Carbon Standard"
-					srt_name = "VCS"
-					#Write the standard name
-					@standard = check_standard(std_name, srt_name)
-
-					check_scheme("", project, @standard)
-					
-					issue_date = @default_date
-					
-					if !vcs_page_html.search("td:nth-child(1) a").empty? then
-						#Set the process type
-						process_type = "Registration"
-						#Grab all registration documents
-						vcs_page_html.search("td:nth-child(1) a").each do |d|
-							#Find the document's URL
-							doc_url = d['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
-							#Find the title of the document
-							doc_title = d.inner_text
-							short_doc_title = ""
-							#Check if date exists
-							date = WhenDate.where('date = ?', issue_date).first
-							#Write in the new date or return the one found above
-							date ||= WhenDate.create!(:date => issue_date)
-							#Create a document
-							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-
-							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-
-							project.save!
-							#Grab the Upload date
-							if d.parent.parent.last_element_child.inner_text !~ /VCS/ then
-								puts "#{d.parent.parent.last_element_child.inner_text} - #{doc_title} - #{process_type}"
-								doc_upload_time = Date.parse(d.parent.parent.last_element_child.inner_text)
-							else
-								doc_upload_time = issue_date
-							end
-							#Check if date exists
-							date = WhenDate.where('date = ?', doc_upload_time).first
-							#Write in the new date or return the one found above
-							date ||= WhenDate.create!(:date => doc_upload_time)
-							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Upload date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-							project.save!
-						end
-					end
-					
-					if !vcs_page_html.search("td:nth-child(2) a").empty? then
-						#Grab all registration documents
-						vcs_page_html.search("td:nth-child(2) a").each do |d|
-							#Find the document's URL
-							doc_url = d.parent.last_element_child['href'].strip.prepend("https://vcsprojectdatabase2.apx.com")
-							#Find the title of the document
-							doc_title = d.parent.parent.first_element_child.text
-
-							short_doc_title = ""
-							
-							#Write project url into the database
-							if d.parent.parent.first_element_child.parent.parent.parent.first_element_child.text == "Issuance Documents"
-								process_type = "Issuance"
-							else
-								process_type = "Unknown"
-							end
-							#Check if date exists
-							date = WhenDate.where('date = ?', issue_date).first
-							#Write in the new date or return the one found above
-							date ||= WhenDate.create!(:date => issue_date)
-							#Create a document
-							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-							project.save!
-
-							#Grab the Upload date
-							if d.parent.parent.last_element_child.inner_text !~ /VCS/ then
-								puts "#{d.parent.parent.last_element_child.inner_text} - #{doc_title} - #{process_type}"
-								doc_upload_time = Date.parse(d.parent.parent.last_element_child.inner_text)
-							else
-								doc_upload_time = issue_date
-							end
-							#Check if date exists
-							date = WhenDate.where('date = ?', doc_upload_time).first
-							#Write in the new date or return the one found above
-							date ||= WhenDate.create!(:date => doc_upload_time)
-							#Create an occasion for the date in the project, country, document and standard
-							project.occasions.build(:description => "Upload date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-							#Save the database entries
-							project.save!
-						end
-					end
-					#Save the database entries
-					project.save!
-
-					vcs_page_html = vcs_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
-					crawl.update_attributes(:html => vcs_page_html, :project_id => project.id, :status_code => 2)
-					crawl.touch
-					crawl.save
-					puts "#{vcs_proj_id}. #{vcs_proj_title} - #{vcs_host_country} - Project ID #{project.id}"
+					create_occasions(@project, @standard, @entity_list, @date_list)
+					@project.save!
 				else
-					vcs_page_html = vcs_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
-					crawl.update_attributes(:html => vcs_page_html, :project_id => vcs_proj_id, :status_code => 5)
+					crawl.update_attributes(:status_code => 5)
 					crawl.touch
 					crawl.save
-					puts "#{vcs_proj_id}. #{vcs_proj_title} - #{vcs_host_country} - Erroneous or incomplete record"
+					puts "- - - Erroneous or incomplete record"
 				end
 			}
 		rescue Timeout::Error
@@ -901,7 +896,10 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 	puts "Collecting new Markit projects data"
 	webcrawls.each do |crawl|
 		begin
+			@entity_list = Array.new
+			@date_list = Array.new
 			mark_page_url = crawl.url
+			puts ""
 			puts "Starting on #{crawl.url}"
 			sleep 5
 			status = Timeout::timeout(20) {
@@ -911,138 +909,115 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 				mark_page_html.encoding = "ISO-8859-1"
 				mark_page_html.encoding = "cp1252"
 					#puts "changed the encoding"
+					#mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
 				#Find the internal ID of the project
 				id = mark_page_html.css("#project_id")
 					#puts "grabbed the id"
 				#Find the title of the project
 				title = mark_page_html.xpath("/html/body/h1").text.sub(id.text,"").sub('*',"").strip
 				#Check if the title and ID are missing
-				if !title.empty? and !id.empty? and !Project.find_by_title(title) then
-					#Find the full location of the project
-					location = mark_page_html.css(".unitTable tr:nth-child(3) td").text
-					if !location.index(',').nil? then
-						#Extract the country name from location
-						country_name = location.reverse[0..location.reverse.index(',')-1].reverse.strip
-					else
-						country_name = "Unknown"
-					end
+				if !title.empty? and !id.empty? then
 					#Find the name of the standard
 					std_name = mark_page_html.css(".unitTable tr:nth-child(2) td:nth-child(2)").text.strip
-					#Identify which standard it is to see which short name to use
-					srt_name = standard
-					if std_name == "Gold Standard"
-						srt_name = "GS"
-					end
-					if std_name == "Social Carbon"
-						srt_name = "SC"
-					end
-					if std_name == "Verified Carbon Standard"
-						srt_name = "VCS"
-					end
-					#Find the project reference number
-					proj_id = id.text.delete "(ID: )"
+					#Write the standard name
+					@standard = check_standard(std_name)
+
+					if !found_project = Project.find_by_title(title) or !found_project.standards.to_s.include? @standard.short_name then
+						
+						#Find the project reference number
+						proj_id = id.text.delete "(ID: )"
 						#puts proj_id
 
+						#Create a new project record
+						project = Project.create!(:title => title, :refno => proj_id)
+						@project = project
 
-					#CHECK IF THE PROJECT EXISTS #################################################
-					#Create a new project record
-					project = Project.create!(:title => title, :refno => proj_id)
-					
+						check_scheme("", @project, @standard)
 
-					#Check if country name exists
-					country = Country.where('name = ?', country_name).first
-					#Write in the new country names or return the one found above
-					country ||= Country.create(:name => country_name)
-					#define countries role
-					role = "Host"
-					#Create a role for the country in the project
-					project.roles.build(:country_id => country.id, :role => role)
-					#Save the database entries
-					project.save!
-					#Write the standard name
-					
-					@standard = check_standard(std_name, srt_name)
-
-					check_scheme("", project, @standard)
-
-					#Define the issue date of the document
-					issue_date = @default_date
-					#Grab the list of mark_page_htmluments and loop throu it recording the titles and links					
-					mark_page_html.css(".doc").each do |d|
-						doc_url = d['href'].strip.prepend("http://mer.markit.com")
-						#Find the document id
-						#doc_id = doc_url.reverse[0..14].reverse.prepend(" - ")
-						#Find the title of the document
-						doc_title = d.children.text
-						short_doc_title = ""
-						if doc_title =~ /project design document|project design description|pdd/i then
-							short_doc_title = "PDD"
+						#Find the full location of the project
+						location = mark_page_html.css(".unitTable tr:nth-child(3) td").text
+						if !location.index(',').nil? then
+							#Extract the country name from location
+							country_name = location.reverse[0..location.reverse.index(',')-1].reverse.strip
+						else
+							country_name = "Unknown"
 						end
-						if doc_title =~ /monitoring report/i then
-							short_doc_title = "MR"
-						end
-						if doc_title =~ /verification report/i then
-							short_doc_title = "VerR"
-						end
-						if doc_title =~ /validation report/i then
-							short_doc_title = "ValR"
-						end
-						#Ammend the title of the document with ID at the end (for control purposes)
-						#doc_title = doc_id.prepend(d.children.text)
-						process_type = "Unknown"
-						if !(doc_title =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol| oda /i).nil? then
-							process_type = "Registration"
-						end
-						if !(doc_title =~ /verif|monito|issuan/i).nil? then
-							process_type = "Issuance"
-						end
-
-						#Check if date exists
-						date = WhenDate.where('date = ?', issue_date).first
-						#Write in the new date or return the one found above
-						date ||= WhenDate.create!(:date => issue_date)
-						#Create a document
-						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Issue date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
-						project.save!
-
-						#Grab the Upload date
-						doc_upload_time = issue_date
-						#Check if date exists
-						date = WhenDate.where('date = ?', doc_upload_time).first
-						#Write in the new date or return the one found above
-						date ||= WhenDate.create!(:date => doc_upload_time)
-						#Create an occasion for the date in the project, country, document and standard
-						project.occasions.build(:description => "Upload date", :country_id => country.id, :when_date_id => date.id, :standard_id => standard.id, :document_id => document.id)
+						#Check if country name exists
+						country = check_country(country_name)
+						#define countries role
+						role = "Host"
+						#Create a role for the country in the project
+						project.roles.build(:country_id => country.id, :role => role)
 						#Save the database entries
 						project.save!
-					end
-					
-					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
-					crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
-					crawl.touch
-					crawl.save
-					puts "#{short_standard}#{proj_id} - #{title} - #{country.name}"
-					project.documents.each do |d|
-						puts "#{d.id} #{d.title}"
+						
+						#Define the issue date of the document
+						issue_date = parse_date(@default_date)
+						#Grab the list of mark_page_htmluments and loop throu it recording the titles and links					
+						mark_page_html.css(".doc").each do |d|
+							doc_url = d['href'].strip.prepend("http://mer.markit.com")
+							#Find the document id
+							#doc_id = doc_url.reverse[0..14].reverse.prepend(" - ")
+							#Find the title of the document
+							doc_title = d.children.text
+							
+							check_doc(doc_title)
+							short_doc_title = @d[1]
+							process_type = @d[2]
+
+							#Create a document
+							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+							#Create an occasion for the date in the project, country, document and standard
+							@date_list << [issue_date.id, "Issue date", document.id]
+
+							#Check if date exists
+							doc_upload_date = parse_date(@default_date)
+							
+							#Create an occasion for the date in the project, country, document and standard
+							@date_list << [doc_upload_date.id, "Upload date", document.id]
+						end
+						if !mark_page_html.css("tr").children[3].text.empty? then
+							acc_holder = mark_page_html.css("tr").children[3].text
+
+							host_pps = [] << acc_holder
+
+							sthr_role = "host_pp"
+
+							define_pp(country, @project, sthr_role, host_pps)
+						end						
+						#all other additional information is in  mark_page_html.css(".popup")
+
+						#longitude = mark_page_html.css("head script").children[2].content.split(/\n\t/)[6].gsub("long[i] = ", "").gsub(";","")
+						#latitude = mark_page_html.css("head script").children[2].content.split(/\n\t/)[5].gsub("lat[i] = ", "").gsub(";","")
+
+						mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
+						crawl.update_attributes(:html => mark_page_html, :project_id => project.id, :status_code => 2)
+						crawl.touch
+						crawl.save
+						puts "#{@standard.short_name}-#{proj_id} - #{title} - #{country.name}"
+						project.documents.each do |d|
+							puts "#{d.id} #{d.title}"
+						end
+
+						create_occasions(@project, @standard, @entity_list, @date_list)
+						@project.save!
+
+					else
+						puts "Project already exists in DB. We don't need duplications!"
+						crawl.update_attributes(:html => mark_page_html, :project_id => found_project.id, :status_code => 5)
+						crawl.touch
+						crawl.save
 					end
 				else
-					mark_page_html = mark_page_html.text.encode!("utf-8", "utf-8", :invalid => :replace)
-					if Project.find_by_title(title) then
-						puts "Project is the same as in the VCS registry. We don't need duplication!"
-						project_id = Project.find_by_title(title).id
-						crawl.update_attributes(:html => mark_page_html, :project_id => project_id, :status_code => 5)
-						crawl.touch
-						crawl.save
-					else
-						puts "Empty project"
-						crawl.update_attributes(:html => mark_page_html, :status_code => 5)
-						crawl.touch
-						crawl.save
-					end
+					puts "Incomplete project record"
+					crawl.update_attributes(:html => mark_page_html, :status_code => 5)
+					crawl.touch
+					crawl.save
 				end
 			}
+			
+			
+
 		rescue Timeout::Error
 			if crawl.retries > 0
 				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
@@ -1746,24 +1721,35 @@ def check_country(country)
 end
 
 def create_occasions(project, standard, entity_hash = {}, date_hash = {})
-	
-		entity_hash.each do |s|
-			date_hash.each do |d|
+	entity_hash.each do |s|
+		date_hash.each do |d|
+			occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
+			if !occasion.nil? then
+				puts "Found the occasion #{occasion.description}"
+			else
+				#Create an occasion for the Document
+				project.occasions.build(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s)
+				project.save!
 				occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
-				if !occasion.nil? then
-					puts "Found the occasion #{occasion.description}"
-				else
-					#Create an occasion for the Document
-					project.occasions.build(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s)
-					project.save!
-					occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
-					puts "- #{occasion.description} - for project #{occasion.project_id} for company #{occasion.entity_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
-				end
+				puts "- #{occasion.description} - for project #{occasion.project_id} for company #{occasion.entity_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
 			end
 		end
+	end
 end
 
-def check_standard(std_name, srt_name)
+def check_standard(std_full_name)
+	#Identify which standard it is to see which short name to use
+	std_name = std_full_name
+	srt_name = ""
+	if std_name == "Gold Standard"
+		srt_name = "GS"
+	end
+	if std_name == "Social Carbon"
+		srt_name = "SC"
+	end
+	if std_name == "Verified Carbon Standard"
+		srt_name = "VCS"
+	end
 	#Check if standard exists
 	found_standard = Standard.where('name = ?', std_name).first
 	#Write in the new standard or return the one found above
@@ -1774,7 +1760,7 @@ def check_scheme(desc, project, standard)
 	#Check if scheme exists
 	found_scheme = Scheme.where('project_id = ? and standard_id = ?', project.id, standard.id).first
 	if !found_scheme.nil? then
-		puts "The project #{project_id} was listed under this #{standard.short_name} already"
+		puts "The project #{project_id} was listed under the #{standard.short_name} already"
 	else
 		#Write in the new scheme or return the one found above
 		standard.schemes.build(:desc => desc, :project_id => project.id, :standard_id => standard.id)
@@ -1823,20 +1809,51 @@ def check_doe(name, short_name, country_id)
 	entity
 end
 
-new_cdm_doe_crawler
-new_vcs_doe_crawler
+def check_doc(doc_full_name)
+	doc_name = doc_full_name
+	srt_doc_name = ""
+	if doc_name =~ /project design document|project design description|pdd/i then
+		srt_doc_name = "PDD"
+	end
+	if doc_name =~ /monitoring report/i then
+		srt_doc_name = "MR"
+	end
+	if doc_name =~ /verification report/i then
+		srt_doc_name = "VerR"
+	end
+	if doc_name =~ /validation report/i then
+		srt_doc_name = "ValR"
+	end
+
+	process_type = "Unknown"
+	if !(doc_name =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol| oda /i).nil? then
+		process_type = "Registration"
+	end
+	if !(doc_name =~ /verif|monito|issuan/i).nil? then
+		process_type = "Issuance"
+	end
+
+	@d = Array.new
+	@d << doc_name
+	@d << srt_doc_name
+	@d << process_type
+end
+
+
+# new_cdm_doe_crawler
+# new_vcs_doe_crawler
 
 #vcs_update_page_crawler
-#vcs_new_page_crawler
+# vcs_new_page_crawler
 #markit_update_page_crawler
-#markit_new_page_crawler
-cdm_gsp_page_crawler
+markit_new_page_crawler
+# cdm_gsp_page_crawler
 # cdm_gsp_page_updater
 # cdm_cp2_page_crawler
 # cdm_cp2_page_updater
 # cdm_cp3_page_crawler
 # cdm_cp3_page_updater
-cdm_withdrawn_crawler
+# cdm_withdrawn_crawler
 
 
 	if !Webcrawl.where(:status_code => 4).empty? then
