@@ -272,6 +272,60 @@ namespace :crawl do
 		end
 	end
 	@array_to_scan = []
+	def vcs_iss_page_finder
+		try = 1
+		begin
+			puts "Checking for new links for VCS issuance declarations!"
+			vcs_timeout = Timeout::timeout(20){
+				@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2")
+			}
+			
+			max =  @agent.page.links[34].href.gsub("/myModule/Interactive.asp?Tab=VCUs&a=3&i=","").to_i + 15
+			
+
+			if !Webcrawl.where(:source => "vcs_iss").order("last_page DESC").first.nil? then
+				lst = Webcrawl.where(:source => "vcs_iss").order("last_page DESC").first.last_page.to_i
+				@array_to_scan = (lst..max).to_a
+				puts "Scan will start from issuance #{lst} and end at #{max}"
+			else
+				@array_to_scan = (1..max).to_a
+				puts "Scan will start from scratch"
+			end
+		rescue Timeout::Error
+			if try > 0
+				puts "VCS website doesn't respond, let's try again"
+				try -= 1
+				retry
+			else
+				sleep 10
+				retry
+			end
+		rescue SocketError => e
+			puts e.message
+			puts "Most probably the internet connection is gone!"
+		end
+	end
+	def vcs_iss_link_collector(array_to_scan = @array_to_scan)
+		link = "https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?Tab=VCUs&a=3&i="
+		array_to_scan.each do |i|
+			vcs_iss_url = link + i.to_s
+			if Webcrawl.where('url = ?', vcs_iss_url).first.blank? then
+				puts "That's a new one."
+				crawl = Webcrawl.create!(:url => vcs_iss_url, :source => "vcs_iss", :last_page => i, :status_code => 1, :retries => @r)
+				puts vcs_iss_url
+			else
+				crawl = Webcrawl.where('url = ?', vcs_iss_url).first
+				crawl.status_code = 2
+				crawl.touch
+				crawl.save
+				puts "I've heard that one before."
+				puts vcs_iss_url
+			end
+			puts "Link #{i} is scanned"
+		end
+	end
+
+	@array_to_scan = []
 	def markit_page_finder
 		try = 1
 		begin
@@ -381,9 +435,12 @@ namespace :crawl do
 	# cdm_doe_link_finder
 	# vcs_doe_link_finder
 
-	vcs_page_finder
-	vcs_link_collector
+	# vcs_page_finder
+	# vcs_link_collector
 	
+	vcs_iss_page_finder
+	vcs_iss_link_collector
+
 	#cdm_page_finder
 	#cdm_link_collector
 	

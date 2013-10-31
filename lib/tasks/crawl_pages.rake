@@ -635,6 +635,7 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 			@entity_list = Array.new
 			@date_list = Array.new
 			vcs_page_url = crawl.url
+			puts ""
 			puts "#{vcs_page_url}"
 			status = Timeout::timeout(20) {
 				@agent.get(vcs_page_url)
@@ -649,10 +650,16 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 					vcs_proj_id = "%.4i" %vcs_page_html.search("dd:nth-child(2)").text.delete("^0-9")
 					#check if the project is empty record
 					puts "Starting with the project #{vcs_proj_id}"
-					if !vcs_proj_title.empty? and !vcs_host_country.empty? and !vcs_proj_title.downcase.include? "error" then
+					std_name = "Verified Carbon Standard"
+					#Write the standard name
+					@standard = check_standard(std_name)
+
+					if !vcs_proj_title.empty? and !vcs_host_country.empty? and !vcs_proj_title.downcase.include? "error" and check_project(vcs_proj_title, @standard) then
+						
 						#Create a new project record
 						project = Project.create!(:title => vcs_proj_title, :refno => vcs_proj_id)
 						@project = project
+
 						#Check if country name exists
 						country = check_country(vcs_host_country)
 						
@@ -661,12 +668,7 @@ def vcs_new_page_crawler(webcrawls = Webcrawl.where(:source => "vcs", :status_co
 						project.roles.build(:country_id => country.id, :role => role)
 						#Save the database entries
 						project.save!
-
-						std_name = "Verified Carbon Standard"
-						
-						#Write the standard name
-						@standard = check_standard(std_name)
-
+						#Create connection between the standard and the project
 						check_scheme("", project, @standard)
 						#Check if date exists
 						issue_date = parse_date(@default_date)
@@ -913,6 +915,9 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 				#Find the internal ID of the project
 				id = mark_page_html.css("#project_id")
 					#puts "grabbed the id"
+				#Find the project reference number
+				proj_id = id.text.delete "(ID: )"
+				#puts proj_id
 				#Find the title of the project
 				title = mark_page_html.xpath("/html/body/h1").text.sub(id.text,"").sub('*',"").strip
 				#Check if the title and ID are missing
@@ -922,12 +927,9 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 					#Write the standard name
 					@standard = check_standard(std_name)
 
-					if !found_project = Project.find_by_title(title) or !found_project.standards.to_s.include? @standard.short_name then
-						
-						#Find the project reference number
-						proj_id = id.text.delete "(ID: )"
-						#puts proj_id
-
+					if check_project(title, @standard) then
+					#!found_project = Project.find_by_title(title) or !found_project.standards.to_s.include? @standard.short_name then
+					
 						#Create a new project record
 						project = Project.create!(:title => title, :refno => proj_id)
 						@project = project
@@ -1016,8 +1018,6 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 				end
 			}
 			
-			
-
 		rescue Timeout::Error
 			if crawl.retries > 0
 				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
@@ -1279,6 +1279,152 @@ def new_vcs_doe_crawler(webcrawls = Webcrawl.where(:source => "vcs_doe", :status
 			puts "Moving on."
 		end
 	end
+end
+
+def vcs_iss_updater(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_code => 2))
+	begin
+		#to go through all issuance pages as a list
+		#@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "2")
+	rescue Timeout::Error
+			if crawl.retries > 0
+				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
+				#Increase the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts crawl.url
+				#Constant timeout status is 4
+				crawl.status_code = 4
+				crawl.touch
+				crawl.save
+			end
+	rescue OpenURI::HTTPError => ex
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
+
+	end
+end
+
+def vcs_iss_crawler(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_code => 1))
+	puts "Collecting issuance ifo for VCS projects"
+	webcrawls.each do |crawl|
+		begin
+			@date_list = Array.new
+			@entity_list = Array.new
+			vcs_iss_url = crawl.url
+			puts ""
+			puts "#{vcs_iss_url}"
+			status = Timeout::timeout(20) {
+				@agent.get(vcs_iss_url)
+				@agent.page.encoding = 'ISO-8859-1'
+				@agent.page.encoding = 'cp1252'
+				vcs_page_html = #@agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
+			}
+			#to go through all issuance pages as a list
+			#@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "2")
+		
+		rescue Timeout::Error
+				if crawl.retries > 0
+					puts "The page seems to take longer than 20 seconds. We'll get back to it later."
+					#Increase the number of retries
+					crawl.retries -= 1
+					#Put the id of the project into the array for the rescan later
+					@timed_out << crawl.id
+					crawl.touch
+					crawl.save
+				else
+					puts crawl.url
+					#Constant timeout status is 4
+					crawl.status_code = 4
+					crawl.touch
+					crawl.save
+				end
+		rescue OpenURI::HTTPError => ex
+				if crawl.retries > 0
+					puts "The page is missing or not responding"
+					#Decrease the number of retries
+					crawl.retries -= 1
+					#Put the id of the project into the array for the rescan later
+					@timed_out << crawl.id
+					crawl.touch
+					crawl.save
+				else
+					puts "The page at #{crawl.url} is gone"
+					#Constant 404 is status 5
+					crawl.status_code = 5
+					crawl.touch
+					crawl.save
+				end
+
+		end
+	end
+end
+
+def cdm_withdrawn_crawler
+	begin	
+		puts "Collecting withdrawn CDM projects"
+		@date_list = Array.new
+		@entity_list = Array.new
+		
+		status = Timeout::timeout(20) {
+		wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
+		page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
+		wdr_page = Nokogiri::HTML(page_html)
+		wdr_page_html = wdr_page.css("html body div#container div#content div#cols div#main")
+
+		wdr_page_html.children[7].search("tr")[1..-1].each do |p|
+			wdr_proj_refno =  p.children[0].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+			project = Project.where(:refno => wdr_proj_refno).first
+			if !project.blank? then
+				proj_acc_date = Date.parse(p.children[8].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip).strftime("%F")
+				proj_wdr_date = Date.parse(p.children[10].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip).strftime("%F")
+
+				# host = p.children[4].children[1].children[1].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
+
+				acc_date = parse_date(proj_acc_date)
+				@date_list << [acc_date.id, "Project submitted to CDM EB", nil]
+
+				wdr_date = parse_date(proj_wdr_date)
+				@date_list << [wdr_date.id, "Project withdrawn from CDM EB", nil]
+
+				standard = project.standards.where(:short_name => "CDM").first
+				
+				project.entities.each do |s|
+					if !@entity_list.include? s.id
+						@entity_list << s.id
+					end
+				end
+				
+
+				create_occasions(project, standard, @entity_list, @date_list)
+								
+				#Update the crawl record for the project page
+				crawl = Webcrawl.where(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1).first
+				crawl ||= Webcrawl.create!(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1)
+				crawl.save!
+			end
+		end
+		}
+	rescue Timeout::Error
+		puts "Not enough time! Trying again"
+		retry
+	end		
 end
 
 def doe_name_finder(name)
@@ -1635,56 +1781,7 @@ def define_pp(country, project, role, hash = {})
 	end
 end
 
-def cdm_withdrawn_crawler
-	begin	
-		puts "Collecting withdrawn CDM projects"
-		@date_list = Array.new
-		@entity_list = Array.new
-		
-		status = Timeout::timeout(20) {
-		wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
-		page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
-		wdr_page = Nokogiri::HTML(page_html)
-		wdr_page_html = wdr_page.css("html body div#container div#content div#cols div#main")
 
-		wdr_page_html.children[7].search("tr")[1..-1].each do |p|
-			wdr_proj_refno =  p.children[0].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
-			project = Project.where(:refno => wdr_proj_refno).first
-			if !project.blank? then
-				proj_acc_date = Date.parse(p.children[8].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip).strftime("%F")
-				proj_wdr_date = Date.parse(p.children[10].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip).strftime("%F")
-
-				# host = p.children[4].children[1].children[1].children[0].text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
-
-				acc_date = parse_date(proj_acc_date)
-				@date_list << [acc_date.id, "Project submitted to CDM EB", nil]
-
-				wdr_date = parse_date(proj_wdr_date)
-				@date_list << [wdr_date.id, "Project withdrawn from CDM EB", nil]
-
-				standard = project.standards.where(:short_name => "CDM").first
-				
-				project.entities.each do |s|
-					if !@entity_list.include? s.id
-						@entity_list << s.id
-					end
-				end
-				
-
-				create_occasions(project, standard, @entity_list, @date_list)
-								
-				#Update the crawl record for the project page
-				crawl = Webcrawl.where(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1).first
-				crawl ||= Webcrawl.create!(:url => wdr_page_url, :html => wdr_page_html.to_html, :source => "wdr", :status_code => 1)
-				crawl.save!
-			end
-		end
-		}
-	rescue Timeout::Error
-		puts "Not enough time! Trying again"
-		retry
-	end		
-end
 
 def check_country(country)
 	@found_country = nil
@@ -1734,37 +1831,6 @@ def create_occasions(project, standard, entity_hash = {}, date_hash = {})
 				puts "- #{occasion.description} - for project #{occasion.project_id} for company #{occasion.entity_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
 			end
 		end
-	end
-end
-
-def check_standard(std_full_name)
-	#Identify which standard it is to see which short name to use
-	std_name = std_full_name
-	srt_name = ""
-	if std_name == "Gold Standard"
-		srt_name = "GS"
-	end
-	if std_name == "Social Carbon"
-		srt_name = "SC"
-	end
-	if std_name == "Verified Carbon Standard"
-		srt_name = "VCS"
-	end
-	#Check if standard exists
-	found_standard = Standard.where('name = ?', std_name).first
-	#Write in the new standard or return the one found above
-	found_standard ||= Standard.create!(:name => std_name, :short_name => srt_name)
-end
-
-def check_scheme(desc, project, standard)
-	#Check if scheme exists
-	found_scheme = Scheme.where('project_id = ? and standard_id = ?', project.id, standard.id).first
-	if !found_scheme.nil? then
-		puts "The project #{project_id} was listed under the #{standard.short_name} already"
-	else
-		#Write in the new scheme or return the one found above
-		standard.schemes.build(:desc => desc, :project_id => project.id, :standard_id => standard.id)
-		standard.save!
 	end
 end
 
@@ -1839,14 +1905,60 @@ def check_doc(doc_full_name)
 	@d << process_type
 end
 
+def check_standard(std_full_name)
+	#Identify which standard it is to see which short name to use
+	std_name = std_full_name
+	srt_name = ""
+	if std_name == "Gold Standard"
+		srt_name = "GS"
+	end
+	if std_name == "Social Carbon"
+		srt_name = "SC"
+	end
+	if std_name == "Verified Carbon Standard"
+		srt_name = "VCS"
+	end
+	#Check if standard exists
+	found_standard = Standard.where('name = ?', std_name).first
+	#Write in the new standard or return the one found above
+	found_standard ||= Standard.create!(:name => std_name, :short_name => srt_name)
+end
+
+def check_scheme(desc, project, standard)
+	#Check if scheme exists
+	found_scheme = Scheme.where('project_id = ? and standard_id = ?', project.id, standard.id).first
+	if !found_scheme.nil? then
+		puts "The project #{project_id} was listed under the #{standard.short_name} already"
+	else
+		#Write in the new scheme or return the one found above
+		project.standards << standard
+		project.save!
+		#standard.schemes.build(:desc => desc, :project_id => project.id, :standard_id => standard.id)
+		#standard.save!
+	end
+end
+
+def check_project(title, standard)
+	if Project.find_by_title(title)
+		Project.where('title = ?', title).each do |p|
+			if p.standards.to_s.include? standard.short_name
+				return false
+			else
+				return true
+			end
+		end
+	else
+		return true
+	end
+end
 
 # new_cdm_doe_crawler
 # new_vcs_doe_crawler
 
 #vcs_update_page_crawler
-# vcs_new_page_crawler
+vcs_new_page_crawler
 #markit_update_page_crawler
-markit_new_page_crawler
+# markit_new_page_crawler
 # cdm_gsp_page_crawler
 # cdm_gsp_page_updater
 # cdm_cp2_page_crawler
