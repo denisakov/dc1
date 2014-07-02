@@ -1,13 +1,17 @@
 class WhenDate < ActiveRecord::Base
   attr_accessible :date
+  
+  has_many :documents, :through => :occasions, :source => :occasionable, :source_type => "Document"
+  has_many :standards, :through => :occasions, :source => :occasionable, :source_type => "Standard"
+  has_many :addresses, :through => :occasions, :source => :occasionable, :source_type => "Address"
+  has_many :stakeholders, :through => :occasions, :source => :occasionable, :source_type => "Stakeholder"
+  has_many :schemes, :through => :occasions, :source => :occasionable, :source_type => "Scheme"
+
   has_many :occasions, :inverse_of => :project
   has_many :projects, :through => :occasions
-  
-  has_many :occasions, :inverse_of => :document
-  has_many :documents, :through => :occasions
 
-  has_many :occasions, :inverse_of => :standard
-  has_many :standards, :through => :occasions
+  has_many :occasions, :inverse_of => :user, :foreign_key => :created_by_user_id
+  has_many :users, :through => :occasions, :foreign_key => :created_by_user_id
   
   has_many :occasions, :inverse_of => :entity
   has_many :entities, :through => :occasions

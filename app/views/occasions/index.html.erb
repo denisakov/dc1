@@ -7,30 +7,33 @@
         <th><small>Document</small></th>
         <th><small>Project</small></th>
         <th><small><%= sortable "date", "Date" %></small></th>
-        <th><small>Standard</small></th>
+        
         <th></th>
-        <th></th>
+       
         <th></th>
       </tr>
   </thead>
   <tbody>
 <% @occasions.each do |occasion| %>
   <tr>
-    <td><%= occasion.description %></td>
+    <td><%= link_to occasion.description, occasion %></td>
     <td>
-    <% if occasion.document_id %>
-        <%= Document.find_by_id(occasion.document_id).title %></td>
+    <% if occasion.occasionable_id %>
+        <%= occasion.occasionable_type.constantize.find_by_id(occasion.occasionable_id).title %></td>
     <% else %>
         <%= "None" %>
     <% end %>
     <td><%= Project.find_by_id(occasion.project_id).refno %></td>
     <td><%= WhenDate.find_by_id(occasion.when_date_id).date.localtime.to_formatted_s(:just_date) %></td>
-    <td><%= Standard.find_by_id(occasion.standard_id).short_name %></td>
-    <td><%= link_to 'Show', occasion %></td>
-    <td><%= link_to 'Edit', edit_occasion_path(occasion) %></td>
-    <td><%= link_to 'Destroy', occasion, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+    
+   
+    <td><%= link_to 'Edit', edit_occasion_path(occasion), :class => 'btn btn-mini' %></td>
+    <td><%= link_to 'Destroy', occasion, method: :delete, data: { confirm: 'Are you sure?' }, :class => 'btn btn-mini' %></td>
   </tr>
 <% end %>
 </tbody>
 </table>
 <%= will_paginate @occasions, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
+<% content_for :title do %>Occasions<% end %>
+<% content_for :description do %>My Description<% end %>

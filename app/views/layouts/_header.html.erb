@@ -4,14 +4,16 @@
       <%= link_to "data collector", '#', id: "logo" %>
       <nav>
         <ul class="nav pull-right">
-          <li class="<%= "active" if current_page?(webcrawls_path) %>"><%= link_to "Crawls", webcrawls_path %></li>
-          <li class="<%= "active" if current_page?(standards_path) %>"><%= link_to "Standards", standards_path %></li>
-          <li class="<%= "active" if current_page?(when_dates_path) %>"><%= link_to "Dates", when_dates_path %></li>
-          <li class="<%= "active" if current_page?(countries_path) %>"><%= link_to "Countries", countries_path %></li>
-          <li class="<%= "active" if current_page?(stakeholders_path) %>"><%= link_to "Entities", entities_path %></li>
-          <li class="<%= "active" if current_page?(projects_path) %>"><%= link_to "Projects", projects_path %></li>
-          <li class="<%= "active" if current_page?(documents_path) %>"><%= link_to "Documents", documents_path %></li>
-          <li class="<%= "active" if current_page?(occasions_path) %>"><%= link_to "Occasions", occasions_path %></li>
+          <li class="<%= "active" if params[:controller] == 'webcrawls' %>"><%= link_to "Crawls", webcrawls_path %></li>
+          <li class="<%= "active" if params[:controller] == 'standards' %>"><%= link_to "Standards", standards_path %></li>
+          <li class="<%= "active" if params[:controller] == 'when_dates' %>"><%= link_to "Dates", when_dates_path %></li>
+          <li class="<%= "active" if params[:controller] == 'countries' %>"><%= link_to "Countries", countries_path %></li>
+          <li class="<%= "active" if params[:controller] == 'entities' %>"><%= link_to "Entities", entities_path %></li>
+          <li class="<%= "active" if params[:controller] == 'addresses' %>"><%= link_to "Addresses", addresses_path %></li>
+          <li class="<%= 'active' if params[:controller] == 'projects' %>"><%= link_to "Projects", projects_path %></li>
+
+          <li class="<%= "active" if params[:controller] == 'documents' %>"><%= link_to "Documents", documents_path %></li>
+          <li class="<%= "active" if params[:controller] == 'occasions' %>"><%= link_to "Occasions", occasions_path %></li>
           <li class="<%= "active" if current_page?(root_path) %>"><%= link_to "Home", root_path %></li>
           <li class="<%= "active" if current_page?('#') %>"><%= link_to "Help",    '#' %></li>
           <li class="<%= "active" if current_page?('#') %>"><%= link_to "Sign in", '#' %></li>

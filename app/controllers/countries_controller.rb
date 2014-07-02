@@ -3,7 +3,7 @@ class CountriesController < ApplicationController
   # GET /countries
   # GET /countries.json
   def index
-    @countries = Country.scoped.order(sort_column + " " + sort_direction)
+    @countries = Country.scoped.order(sort_column + " " + sort_direction).paginate(:page => params[:page], :per_page => 30)
 
     respond_to do |format|
       format.html # index.html.erb

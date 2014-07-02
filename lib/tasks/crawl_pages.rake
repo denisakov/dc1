@@ -84,7 +84,7 @@ def cdm_gsp_page_updater(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 		puts "There were some timeouts."
 		#Searching for the pages which had timedout
 		webcrawls = Webcrawl.find(@timed_out)
-		@timed_out = []
+		@timed_out = {}
 		#Calling the same method on the timed out pages
 		cdm_update_page_crawler(webcrawls)
 	#No timeouts
@@ -100,8 +100,9 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 		t=20
 		begin
 			
-			@entity_list = Array.new
-			@date_list = Array.new
+			#@date_list = Array.new
+			@occasion_list = Array.new
+
 			gsp_page_url = crawl.url
 
 			status = Timeout::timeout(t) {
@@ -133,7 +134,8 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					#Find the registration date
 					if gsp_page_html.css("tr:nth-child(11) td").children[1].text  =~ /[\d]/
 						cdm_reg_date = parse_date(gsp_page_html.css("tr:nth-child(11) td").children[1])
-						@date_list << [cdm_reg_date.id, "Project registered by CDM EB", nil]
+						
+						#@occasion_list << [true, [cdm_reg_date, "Project was registered"], [project.id],[],[],[]]
 					else
 						cdm_reqr_date = "Review Requested"
 						cdm_wdr_date = "Withdrawn"
@@ -143,26 +145,25 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						#find creditting period starting date
 						parse_period(gsp_page_html.css("tr:nth-child(12) td").children[0])
 						cdm_sp1_st_date = @start_date
-						@date_list << [cdm_sp1_st_date.id, "1st crediting period started", nil]
+						#@occasion_list << [true, [cdm_sp1_st_date, "1st crediting period started"], [project.id],[],[],[]]
 						#find creditting period end date
 						cdm_sp1_fn_date = @end_date
-						@date_list << [cdm_sp1_fn_date.id, "1st crediting period ended", nil]
+						#@occasion_list << [true, [cdm_sp1_fn_date, "1st crediting period ended"], [project.id],[],[],[]]
 						if  gsp_page_html.css("tr:nth-child(12) td").children[3] =~ /Subsequent/ then
 							parse_period(gsp_page_html.css("tr:nth-child(12) td").children[5])
 							cdm_sp2_st_date = @start_date
-							@date_list << [cdm_sp2_st_date.id, "2nd crediting period started", nil]
+							#@occasion_list << [true, [cdm_sp2_st_date, "2nd crediting period started"], [project.id],[],[],[]]
 							cdm_sp2_fn_date = @end_date
-							@date_list << [cdm_sp2_fn_date.id, "2nd crediting period ended", nil]
+						#	@occasion_list << [true, [cdm_sp2_fn_date, "2nd crediting period ended"], [project.id],[],[],[]]
 						end
 						if gsp_page_html.css("tr:nth-child(12) td").children[2] =~ /Changed/ then
 							parse_period(gsp_page_html.css("tr:nth-child(12) td").children[3])
 							cdm_sp1_old_st_date = @start_date
-							@date_list << [cdm_sp1_old_st_date.id, "1st crediting period should have started (changed)", nil]
+							#@occasion_list << [true, [cdm_sp1_old_st_date, "1st crediting period should have started (changed)"], [project.id],[],[],[]]
 							cdm_sp1_old_fn_date = @end_date
-							@date_list << [cdm_sp1_old_fn_date.id, "1st crediting period should have ended (changed)", nil]
+							#@occasion_list << [true, [cdm_sp1_old_fn_date, "1st crediting period should have ended (changed)"], [project.id],[],[],[]]
 						end
 					end
-
 				else
 					cdm_scope = gsp_page_html.css("tr:nth-child(4) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ").strip
 					
@@ -172,7 +173,8 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					cdm_fee = gsp_page_html.css("tr:nth-child(8) td").text.gsub(/\n/,"").gsub(/\s{2,}/," ")[5..-2]
 					if gsp_page_html.css("tr:nth-child(10) td").children[1].text =~ /[\d]/
 						cdm_reg_date = parse_date(gsp_page_html.css("tr:nth-child(10) td").children[1])
-						@date_list << [cdm_reg_date.id, "Project registered by CDM EB", nil]
+						
+						#@occasion_list << [true, [cdm_reg_date, "Project was registered"], [project.id],[],[],[]]
 					else
 						cdm_reqr_date = "Review Requested"
 						cdm_wdr_date = "Withdrawn"
@@ -181,42 +183,63 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					if gsp_page_html.css("tr:nth-child(11)").text =~ /Crediting/
 						parse_period(gsp_page_html.css("tr:nth-child(11) td").children[0])
 						cdm_sp1_st_date = @start_date
-						@date_list << [cdm_sp1_st_date.id, "1st crediting period started", nil]
+						#@occasion_list << [true, [cdm_sp1_st_date, "1st crediting period started"], [project.id],[],[],[]]
 						cdm_sp1_fn_date = @end_date
-						@date_list << [cdm_sp1_fn_date.id, "1st crediting period ended", nil]
+						#@occasion_list << [true, [cdm_sp1_fn_date, "1st crediting period ended"], [project.id],[],[],[]]
 						if  gsp_page_html.css("tr:nth-child(11) td").children[3] =~ /Subsequent/ then
 							parse_period(gsp_page_html.css("tr:nth-child(11) td").children[5])
 							cdm_sp2_st_date = @start_date
-							@date_list << [cdm_sp2_st_date.id, "2nd crediting period started", nil]
+							#@occasion_list << [true, [cdm_sp2_st_date, "2nd crediting period started"], [project.id],[],[],[]]
 							cdm_sp2_fn_date = @end_date
-							@date_list << [cdm_sp2_fn_date.id, "2nd crediting period ended", nil]
+							#@occasion_list << [true, [cdm_sp2_fn_date, "2nd crediting period ended"], [project.id],[],[],[]]
 						end
 						if gsp_page_html.css("tr:nth-child(11) td").children[2] =~ /Changed/ then
 							parse_period(gsp_page_html.css("tr:nth-child(11) td").children[3])
 							cdm_sp1_old_st_date = @start_date
-							@date_list << [cdm_sp1_old_st_date.id, "1st crediting period should have started (changed)", nil]
+							#@occasion_list << [true, [cdm_sp1_old_st_date, "1st crediting period should have started (changed)"], [project.id],[],[],[]]
 							cdm_sp1_old_fn_date = @end_date
-							@date_list << [cdm_sp1_old_fn_date.id, "1st crediting period should have ended (changed)", nil]
+							#@occasion_list << [true, [cdm_sp1_old_fn_date, "1st crediting period should have ended (changed)"], [project.id],[],[],[]]
 						end
 					end
 				end
-				puts "#{cdm_scope}, #{cdm_meths}, #{cdm_er}"
-				if cdm_reg_date then
-					puts "Registration date #{cdm_reg_date.date.strftime("%F")}"
-				else
-					puts "Project wasn't registered"
-				end
-
-				puts "#{cdm_sp1_st_date}"
-				puts "#{cdm_sp1_fn_date}"
-				
 				#Create a new project record
 				project = Project.create!(:title => cdm_proj_title, :refno => cdm_proj_id, :scale => cdm_proj_scale, :fee => cdm_fee)
+				puts "Created CDM project!"
 				@project = project
+
+				if cdm_reg_date then
+					puts "Registration date #{cdm_reg_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_reg_date, "Project was registered"], [project.id],[],[],[]]
+				end
+				if cdm_sp1_st_date then
+					puts "#{cdm_sp1_st_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_sp1_st_date, "1st crediting period started"], [project.id],[],[],[]]
+				end
+				if cdm_sp1_fn_date then
+					puts "#{cdm_sp1_fn_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_sp1_fn_date, "1st crediting period ended"], [project.id],[],[],[]]
+				end
+				if cdm_sp2_st_date then
+					puts "#{cdm_sp2_st_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_sp2_st_date, "2nd crediting period started"], [project.id],[],[],[]]
+				end
+				if cdm_sp2_fn_date then
+					puts "#{cdm_sp2_fn_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_sp2_fn_date, "2nd crediting period ended"], [project.id],[],[],[]]
+				end
+				if cdm_sp1_old_st_date then
+					puts "#{cdm_sp1_old_st_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_sp1_old_st_date, "1st crediting period should have started (changed)"], [project.id],[],[],[]]
+				end
+				if cdm_sp1_old_fn_date then
+					puts "#{cdm_sp1_old_fn_date.date.strftime("%F")}"
+					@occasion_list << [true, [cdm_sp1_old_fn_date, "1st crediting period should have ended (changed)"], [project.id],[],[],[]]
+				end
+				puts "#{cdm_scope}, #{cdm_meths}, #{cdm_er}"
+												
 				std_name = "Clean Development Mechanism"
-				srt_name = "CDM"
 				#Write the standard name
-				@standard = check_standard(std_name, srt_name)
+				@standard = check_standard(std_name)
 
 				check_scheme("", project, @standard)
 				
@@ -230,39 +253,34 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						puts "Host country is #{cdm_host_country}"
 						#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
 						doc_url = a.children[5]['href']
-						#set the role variable
-						country_role = "Host"
-						#set the process variable
-						process_type = "Registration"
-						#set the doc title; including the country name into doc's name for now.
 						doc_title = "Letter of Approval"
-						#set document short name
-						short_doc_title = "LoA"
-						
 						#Create a document
-						document = Document.create!(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-						
+						document = check_doc(doc_title, doc_url, project.id)
+
 						#Define the issue date of the document
 						issue_date = parse_date(@default_date)
-						@date_list << [issue_date.id, "Issue date", document.id]
+						#@date_list << [issue_date.id, "Issue date", document.id]
+						@occasion_list << [true, [issue_date, "Issue date"], [project.id],[],[],["Document", document.id]]
 
-						@host_country = check_country(cdm_host_country)
+						host_country = check_country(cdm_host_country)
 						
-						#Create a role for the country in the project
-						project.roles.build(:country_id => @host_country.id, :role => country_role)						
-						project.save!
-						
+						check_address(@project, host_country.id)
+
 						#Grab all the project participants
 						#-----------------------------------
+						
+						# host_pps = a[1].text.gsub(/\s{2,}/," ").gsub(/([^:]*\:)/, "").strip.split(%r{;\s*})
+
 						if a.children[3].text =~ /involved/ then
-							host_pps = a.children[12].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+							host_pps = a.text.gsub(/\s{2,}/," ").gsub(/([^:]*\:)/, "").strip.split(%r{;\s*})
 						else
-							host_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
+							host_pps = a.text.gsub(/\s{2,}/," ").gsub(/([^:]*\:)/, "").strip.split(%r{;\s*})
 						end
 						#-----------------------------------
-
+						#Create a role for the country in the project
+						country_role = "Host"
 						sth_role = "host_pp"
-						define_pp(@host_country, project, sth_role, host_pps)
+						define_pp(host_country, project, sth_role, country_role, host_pps)
 						
 						#Find registering DOE
 						short_doe_name = gsp_page_url.gsub("http://cdm.unfccc.int/Projects/DB/", "").gsub("/view?cp=", "").gsub(/[\d]/,"").gsub("%", " ").gsub(".","")
@@ -270,9 +288,9 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						short_doe_name = @a[0]
 						doe_name = @a[1]
 						if @a[2] then
-							doe_country = Country.where('name = ?', @a[2]).first
+							doe_country = check_country(@a[2])
 						else
-							doe_country = Country.where('name = ?', "Unknown").first
+							doe_country = check_country("Unknown")
 						end
 						
 						@val_doe = check_doe(doe_name, short_doe_name, doe_country.id)
@@ -280,7 +298,7 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 						#Define the role of the entity in the project
 						ent_role = "val_doe"
 
-						project.stakeholders.build(:project_id => project.id, :entity_id => @val_doe.id, :role => ent_role)
+						project.stakeholders.build(:project_id => project.id, :entity_id => @val_doe.id, :entity_role => ent_role)
 						puts "#{@val_doe.id} #{doe_name} - Validating DOE"
 						
 						project.save!
@@ -288,46 +306,38 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 				end
 				#Grab the PDD and related docs
 				gsp_page_html.css("tr:nth-child(1)").children[2].children.each do |a|
+
+					############## this block can be further optimized ####################
+					
 					if a['href'] =~ /FileStorage/ then
 						doc_url = a['href']
-						#set the doc title; including the country name into doc's name for now.
+						#set the doc title
 						doc_title = a.inner_text
-						#set document short name
-						short_doc_title = ""
 					end
 					if a.inner_text =~ /project design document/ then
 						doc_url = a['href']
-						#set the doc title; including the country name into doc's name for now.
+						#set the doc title
 						doc_title = "Project Design Document"
-						#set document short name
-						short_doc_title = "PDD"
 					end
 					if a.inner_text =~ /registration request form/ then
 						doc_url = a['href']
-						#set the doc title; including the country name into doc's name for now.
+						#set the doc title
 						doc_title = "Registration Request Form"
-						#set document short name
-						short_doc_title = "RegForm"
 					end
-					#set the process variable
-					process_type = "Registration"
 					if doc_title and doc_url then
 						if a.inner_text =~ /accepted/ then
 							new_pdd_acc_date = parse_date(a.next.next.inner_text)
 							#Create a document
-							document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-							
-							@date_list << [newe_pdd_acc_date.id, "PDD was accepted by CDM EB", document.id]
-							
+							document = check_doc(doc_title, doc_url, project.id)
+							@occasion_list << [true, [newe_pdd_acc_date, "PDD was accepted by CDM EB"], [project.id],[],[],["Document", document.id]]
 						end
 						#Define the issue date of the document
 						issue_date = parse_date(@default_date)
 						#Create a document
-						document = Document.create(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
-						#Create an occasion for the date in the project, country, document and standard
-						@date_list << [issue_date.id, "Issue date", document.id]
-						
-						puts "#{doc_title} | #{doc_url}"
+						document = check_doc(doc_title, doc_url, project.id)
+						@occasion_list << [true, [issue_date, "Issue date"], [project.id],[],[],["Document", document.id]]
+											
+						puts "#{document.title} | #{document.link}"
 					end
 				end
 				
@@ -352,46 +362,36 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 							# 	end
 							# end
 							# inv_country_role ||= "Unknown"
-							#Define the role of the country
-							country_role = "Investor"
-							#set the process variable
-							process_type = "Registration"
-							#set the doc title; including the country name into doc's name for now.
+							
+							#set the doc title
 							doc_title = "Letter of Approval"
-							#set document short name
-							short_doc_title = "LoA"
 							#Grab the first link from "approval"; ignoring the "authorization" for now, because they are mostly the same
 							doc_url = a.children[5]['href']
-							
-
-							inv_country = check_country(cdm_inv_country)
-
-							#Create a role for the country in the project
-							project.roles.build(:country_id => inv_country.id, :role => country_role)
-							project.save!
-							#======================================
-							#Idenfify the project participants
-							if a.children[10] then
-								#Grab all the project participants
-								inv_pps = a.children[10].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
-							else
-								inv_pps = a.children[8].text.gsub(/Authorized Participants:/, '').strip.split(%r{;\s*})
-							end
-							#======================================
-
-							pp_role = "a1_pp"
-							define_pp(inv_country, project, pp_role, inv_pps)
-							
+							#Create a document
+							document = check_doc(doc_title, doc_url, project.id)
 							#Define the issue date of the document
 							issue_date = parse_date(@default_date)
-							#Create a document
-							document = Document.create!(:title => doc_title, :short_title => short_doc_title, :process_type => process_type, :link => doc_url, :project_id => project.id)
+							@occasion_list << [true, [issue_date, "Issue date"], [project.id],[],[],["Document", document.id]]
 
-							@date_list << [issue_date.id, "Issue date", document.id]
+							inv_country = check_country(cdm_inv_country)
+							
+							#======================================
+							#Idenfify the project participants
+							
+							# inv_pps = a[1].text.gsub(/\s{2,}/," ").gsub(/([^:]*\:)/, "").strip.strip.split(%r{;\s*})
 
-							#Create an occasion for the Document
-							# project.occasions.build(:description => "Issue date", :country_id => inv_country.id, :when_date_id => issue_date.id, :standard_id => standard.id, :document_id => document.id)
-
+							if a.children[10] then
+								#Grab all the project participants
+								inv_pps = a.children[10].text.gsub(/\s{2,}/," ").gsub(/([^:]*\:)/, "").strip.split(%r{;\s*})
+							else
+								inv_pps = a.children[8].text.gsub(/\s{2,}/," ").gsub(/([^:]*\:)/, "").strip.split(%r{;\s*})
+							end
+							#======================================
+							#Define the role of the country
+							country_role = "Investor"
+							pp_role = "a1_pp"
+							define_pp(inv_country, project, pp_role, country_role, inv_pps)
+							
 							project.save!
 							puts "Investor country is #{inv_country.name}"
 						end
@@ -412,7 +412,8 @@ def cdm_gsp_page_crawler(webcrawls = Webcrawl.where(:source => "cdm_gsp", :statu
 					puts "Associated pages updated with project id #{project.id}"
 				end
 			}
-			create_occasions(@project, @standard, @entity_list, @date_list)
+			#puts @occasion_list.map {|x| p x}
+			create_occasions(@occasion_list)
 			@project.save!
 
 		rescue Timeout::Error
@@ -947,12 +948,8 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 						#Check if country name exists
 						country = check_country(country_name)
 						#define countries role
-						role = "Host"
-						#Create a role for the country in the project
-						project.roles.build(:country_id => country.id, :role => role)
-						#Save the database entries
-						project.save!
-						
+						country_role = "Host"
+												
 						#Define the issue date of the document
 						issue_date = parse_date(@default_date)
 						#Grab the list of mark_page_htmluments and loop throu it recording the titles and links					
@@ -985,7 +982,7 @@ def markit_new_page_crawler(webcrawls = Webcrawl.where(:source => "mark", :statu
 
 							sthr_role = "host_pp"
 
-							define_pp(country, @project, sthr_role, host_pps)
+							define_pp(country, @project, sthr_role, country_role, host_pps)
 						end						
 						#all other additional information is in  mark_page_html.css(".popup")
 
@@ -1283,9 +1280,60 @@ end
 
 def vcs_iss_updater(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_code => 2))
 	begin
-		#to go through all issuance pages as a list
-		#@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "2")
-	rescue Timeout::Error
+		rescue Timeout::Error
+		if crawl.retries > 0
+			puts "The page seems to take longer than 20 seconds. We'll get back to it later."
+			#Increase the number of retries
+			crawl.retries -= 1
+			#Put the id of the project into the array for the rescan later
+			@timed_out << crawl.id
+			crawl.touch
+			crawl.save
+		else
+			puts crawl.url
+			#Constant timeout status is 4
+			crawl.status_code = 4
+			crawl.touch
+			crawl.save
+		end
+	rescue OpenURI::HTTPError => ex
+		if crawl.retries > 0
+			puts "The page is missing or not responding"
+			#Decrease the number of retries
+			crawl.retries -= 1
+			#Put the id of the project into the array for the rescan later
+			@timed_out << crawl.id
+			crawl.touch
+			crawl.save
+		else
+			puts "The page at #{crawl.url} is gone"
+			#Constant 404 is status 5
+			crawl.status_code = 5
+			crawl.touch
+			crawl.save
+		end
+	end
+end
+
+def vcs_iss_crawler(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_code => 1))
+	puts "Collecting issuance info for VCS projects"
+	webcrawls.each do |crawl|
+		begin
+			@date_list = Array.new
+			@entity_list = Array.new
+			vcs_iss_url = crawl.url
+			puts ""
+			puts "#{vcs_iss_url}"
+			status = Timeout::timeout(20) {
+				@agent.get(vcs_iss_url)
+				@agent.page.encoding = 'ISO-8859-1'
+				@agent.page.encoding = 'cp1252'
+				vcs_page_html #= @agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
+			}
+			#to go through all issuance pages as a list
+			#@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "2")
+		
+		rescue Timeout::Error
 			if crawl.retries > 0
 				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
 				#Increase the number of retries
@@ -1301,7 +1349,7 @@ def vcs_iss_updater(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_cod
 				crawl.touch
 				crawl.save
 			end
-	rescue OpenURI::HTTPError => ex
+		rescue OpenURI::HTTPError => ex
 			if crawl.retries > 0
 				puts "The page is missing or not responding"
 				#Decrease the number of retries
@@ -1317,61 +1365,85 @@ def vcs_iss_updater(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_cod
 				crawl.touch
 				crawl.save
 			end
-
+		end
 	end
 end
 
-def vcs_iss_crawler(webcrawls = Webcrawl.where(:source => "vcs_iss", :status_code => 1))
-	puts "Collecting issuance ifo for VCS projects"
-	webcrawls.each do |crawl|
+def vcs_iss_list_crawler
+	puts "Collecting issuance info from the lists"
+	link = "https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1"
+	@agent.post(link, "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "1")
+
+	max = @agent.page.link_with(:text => /move last/).href.gsub("javascript:submitform2('Desc','Issuance Date','On','", "").gsub("','','','')","").to_i
+
+	[1..max].each do |x|
 		begin
 			@date_list = Array.new
 			@entity_list = Array.new
-			vcs_iss_url = crawl.url
 			puts ""
-			puts "#{vcs_iss_url}"
+			puts "Starting on page #{x}"
 			status = Timeout::timeout(20) {
-				@agent.get(vcs_iss_url)
+				@agent.post(link, "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => x)
 				@agent.page.encoding = 'ISO-8859-1'
 				@agent.page.encoding = 'cp1252'
-				vcs_page_html = #@agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
+				
+				 @agent.page.links_with(:href => /Tab=Projects/)[1..-1].each do |y|
+					iss_date = parse_date(y.node.parent.parent.children[0].text)
+					vintage_start_date = parse_date(y.node.parent.parent.children[2].text)
+					vintage_fin_date = parse_date(y.node.parent.parent.children[4].text)
+					proj_id = Project.find_by_refno("%.4i" %y.node.parent.parent.children[6].text).id
+					total_vintage_qty = y.node.parent.parent.children[16].text
+					vcu_qty_iss = y.node.parent.parent.children[18].text
+					unless y.node.parent.parent.children[20].text.empty?
+						add_cert = y.node.parent.parent.children[20].text
+					end
+					unless y.node.parent.parent.children[22].text.empty?
+						retire_date = parse_date(y.node.parent.parent.children[22].text)
+					end
+
+					desc = "#{vcu_qty_iss} VCUs out of total vintage quantity (#{total_vintage_qty}) has been issued"
+					# @date_list << [date, desc, document_id]
+
+					create_occasions(project, standard, entity_hash = {}, date_hash = {})
+
+				end
+				#page_html = @agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
 			}
 			#to go through all issuance pages as a list
 			#@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "2")
 		
 		rescue Timeout::Error
-				if crawl.retries > 0
-					puts "The page seems to take longer than 20 seconds. We'll get back to it later."
-					#Increase the number of retries
-					crawl.retries -= 1
-					#Put the id of the project into the array for the rescan later
-					@timed_out << crawl.id
-					crawl.touch
-					crawl.save
-				else
-					puts crawl.url
-					#Constant timeout status is 4
-					crawl.status_code = 4
-					crawl.touch
-					crawl.save
-				end
+			if crawl.retries > 0
+				puts "The page seems to take longer than 20 seconds. We'll get back to it later."
+				#Increase the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts crawl.url
+				#Constant timeout status is 4
+				crawl.status_code = 4
+				crawl.touch
+				crawl.save
+			end
 		rescue OpenURI::HTTPError => ex
-				if crawl.retries > 0
-					puts "The page is missing or not responding"
-					#Decrease the number of retries
-					crawl.retries -= 1
-					#Put the id of the project into the array for the rescan later
-					@timed_out << crawl.id
-					crawl.touch
-					crawl.save
-				else
-					puts "The page at #{crawl.url} is gone"
-					#Constant 404 is status 5
-					crawl.status_code = 5
-					crawl.touch
-					crawl.save
-				end
-
+			if crawl.retries > 0
+				puts "The page is missing or not responding"
+				#Decrease the number of retries
+				crawl.retries -= 1
+				#Put the id of the project into the array for the rescan later
+				@timed_out << crawl.id
+				crawl.touch
+				crawl.save
+			else
+				puts "The page at #{crawl.url} is gone"
+				#Constant 404 is status 5
+				crawl.status_code = 5
+				crawl.touch
+				crawl.save
+			end
 		end
 	end
 end
@@ -1380,8 +1452,7 @@ def cdm_withdrawn_crawler
 	begin	
 		puts "Collecting withdrawn CDM projects"
 		@date_list = Array.new
-		@entity_list = Array.new
-		
+				
 		status = Timeout::timeout(20) {
 		wdr_page_url = "http://cdm.unfccc.int/Projects/withdrawn.html"
 		page_html = open(wdr_page_url,'User-Agent' => 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2').read
@@ -1759,29 +1830,21 @@ def doe_name_finder(name)
 	@a << doe_country
 end
 
-def define_pp(country, project, role, hash = {})
+def define_pp(country, project, entity_role, country_role, hash = {})
 	hash.each do |c|
 		pp_name = c.to_s
 		if c =~ /\u0028withdrawn\u0029|\u0028 withdrawn\u0029|\u0028 withdrawn \u0029|\u0028withdrawn\u0029/ then
 			pp_name = c.gsub(" (withdrawn)", "").gsub("(withdrawn)", "").gsub("( withdrawn)", "").gsub("(withdrawn) ", "").gsub("(withdrawn )", "").gsub("( withdrawn )", "").strip
 		end
-		#Check if entity exists
-		entity = Entity.where('title = ?', pp_name).first
-		#Create a new DOE if it doesn't exist yet
-		entity ||= Entity.create!(:title => pp_name, :country_id => country.id)
+		
+		entity = check_entity(pp_name, nil)
 
-		project.stakeholders.build(:project_id => project.id, :entity_id => entity.id, :role => role)
-		project.save!
-		puts "entity #{entity.title} was connected to the project #{project.id} as #{role}"
-
-		if !@entity_list.include? entity.id
-			@entity_list << entity.id
-		end
+		entity.stakeholders.build(:country_id => country.id, :project_id => project.id, :entity_role => entity_role, :country_role => country_role)
 		entity.save!
+		puts "#{entity.title} was connected to the project #{project.id} as #{entity_role} and was approved by #{country_role} country"
+
 	end
 end
-
-
 
 def check_country(country)
 	@found_country = nil
@@ -1817,19 +1880,28 @@ def check_country(country)
 	final_country
 end
 
-def create_occasions(project, standard, entity_hash = {}, date_hash = {})
-	entity_hash.each do |s|
-		date_hash.each do |d|
-			occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
-			if !occasion.nil? then
-				puts "Found the occasion #{occasion.description}"
-			else
-				#Create an occasion for the Document
-				project.occasions.build(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s)
-				project.save!
-				occasion = Occasion.where(:description => d[1], :project_id => project.id, :when_date_id => d[0], :standard_id => standard.id, :document_id => d[2], :entity_id => s).first
-				puts "- #{occasion.description} - for project #{occasion.project_id} for company #{occasion.entity_id} on #{WhenDate.where('id = ?', d[0]).first.date}"
-			end
+def create_occasions(occasion_list = {})
+	#publ, date_hash = {}, project_id = {nil}, entity_hash = {nil,nil,nil}, user_hash = {nil,nil,nil}, occasionable_hash = {nil,nil}
+	#publ = [true, false] :public,
+	#date_hash = [date, description]:when_date_id, :description,
+	#project = project :project_id,
+	#entity_hash = [entity_id, belongs_to_entity_id, shared_with_entity_id] :entity_id, :belongs_to_entity_id, :shared_with_entity_id,
+	#user_hash = [created_by_user_id, belongs_to_entity_id, shared_with_entity_id] :created_by_user_id, :belongs_to_user_id, :shared_with_user_id
+	#occasionable_hash = [model, object_id] :occasionable_type, :occasionable_id
+	occasion_list.each do |o|
+		found_occasion = Occasion.where(:when_date_id => o[1][0].id, :description => o[1][1], :project_id => o[2][0], :entity_id => o[3][0], :owner_entity_id => o[3][1], :shared_to_entity_id => o[3][2], :created_by_user_id => o[4][0], :owner_user_id => o[4][1], :shared_to_user_id => o[4][2], :occasionable_type => o[5][0], :occasionable_id => o[5][1]).first
+		if !found_occasion.nil? then
+			puts "Found the occasion #{found_occasion.description}"
+		else
+			date = o[1][0]
+
+			date.occasions.build(:public => o[0], :description => o[1][1], :project_id => o[2][0], :entity_id => o[3][0], :owner_entity_id => o[3][1], :shared_to_entity_id => o[3][2], :created_by_user_id => o[4][0], :owner_user_id => o[4][1], :shared_to_user_id => o[4][2], :occasionable_type => o[5][0], :occasionable_id => o[5][1])
+			#Create an occasion
+
+			date.save!
+
+			occasion = Occasion.where(:when_date_id => date.id, :description => o[1][1], :project_id => o[2][0], :entity_id => o[3][0], :owner_entity_id => o[3][1], :shared_to_entity_id => o[3][2], :created_by_user_id => o[4][0], :owner_user_id => o[4][1], :shared_to_user_id => o[4][2], :occasionable_type => o[5][0], :occasionable_id => o[5][1]).first
+			puts "#{occasion.id} - #{occasion.description} - for project #{occasion.project_id} for company #{occasion.entity_id} on #{date.date}"
 		end
 	end
 end
@@ -1866,16 +1938,33 @@ def parse_date(date)
 end
 
 def check_doe(name, short_name, country_id)
-	#Identify the entity
-	entity = Entity.where('title = ? and short_title = ?', name, short_name).first
-	entity ||= Entity.create!(:title => name, :short_title => short_name, :country_id => country_id)
-	if !@entity_list.include? entity.id
-		@entity_list << entity.id
-	end
-	entity
+	
+	entity = check_entity(name, short_name)
+
+	doe = check_address(entity, country_id)
 end
 
-def check_doc(doc_full_name)
+def check_entity(name, short_name)
+	#Identify the entity
+	entity = Entity.find_by_title(name)
+	if entity then puts "The entity #{entity.title} has previously existed"
+	end
+	entity ||= Entity.create!(:title => name, :short_title => short_name)
+end
+
+def check_address(object, country_id)
+	if !object.addresses.include? Address.where('addressable_type = ? and addressable_id = ? and country_id = ?', object.class.name, object.id, country_id).first
+		object.addresses.build(:country_id => country_id)
+		puts "Created an address for the #{object.class.name}"
+		object.save!
+		object
+	else
+		puts "#{object.class.name} already had an address"
+		object
+	end
+end
+
+def check_doc(doc_full_name, link, project_id)
 	doc_name = doc_full_name
 	srt_doc_name = ""
 	if doc_name =~ /project design document|project design description|pdd/i then
@@ -1884,25 +1973,33 @@ def check_doc(doc_full_name)
 	if doc_name =~ /monitoring report/i then
 		srt_doc_name = "MR"
 	end
+	# if doc_name =~ /monitoring plan/i then
+	# 	srt_doc_name = "MP"
+	# end
 	if doc_name =~ /verification report/i then
 		srt_doc_name = "VerR"
 	end
 	if doc_name =~ /validation report/i then
 		srt_doc_name = "ValR"
 	end
+	if doc_name =~ /Letter of Approval/i then
+		srt_doc_name = "LoA"
+	end
+	if doc_name =~ /Registration request form/i then
+		srt_doc_name = "RegForm"
+	end
 
 	process_type = "Unknown"
-	if !(doc_name =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol| oda /i).nil? then
+	if !(doc_name =~ /valid|pdd|design|idea|gsp|registration|determin|descrip|passp|stakehol|letter of approval| oda /i).nil? then
 		process_type = "Registration"
 	end
 	if !(doc_name =~ /verif|monito|issuan/i).nil? then
 		process_type = "Issuance"
 	end
 
-	@d = Array.new
-	@d << doc_name
-	@d << srt_doc_name
-	@d << process_type
+	#Create a document
+	document = Document.where('title = ? and short_title = ? and process_type = ? and link = ? and project_id = ?', doc_name, srt_doc_name, process_type, link, project_id).first
+	document ||= Document.create!(:title => doc_name, :short_title => srt_doc_name, :process_type => process_type, :link => link, :project_id => project_id)
 end
 
 def check_standard(std_full_name)
@@ -1911,6 +2008,9 @@ def check_standard(std_full_name)
 	srt_name = ""
 	if std_name == "Gold Standard"
 		srt_name = "GS"
+	end
+	if std_name == "Clean Development Mechanism"
+		srt_name = "CDM"
 	end
 	if std_name == "Social Carbon"
 		srt_name = "SC"
@@ -1952,14 +2052,14 @@ def check_project(title, standard)
 	end
 end
 
-# new_cdm_doe_crawler
+new_cdm_doe_crawler
 # new_vcs_doe_crawler
 
 #vcs_update_page_crawler
-vcs_new_page_crawler
+# vcs_new_page_crawler
 #markit_update_page_crawler
 # markit_new_page_crawler
-# cdm_gsp_page_crawler
+cdm_gsp_page_crawler
 # cdm_gsp_page_updater
 # cdm_cp2_page_crawler
 # cdm_cp2_page_updater

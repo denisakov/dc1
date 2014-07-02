@@ -432,17 +432,17 @@ namespace :crawl do
 			end
 	end
 	
-	# cdm_doe_link_finder
-	# vcs_doe_link_finder
+	cdm_doe_link_finder
+	vcs_doe_link_finder
 
-	# vcs_page_finder
-	# vcs_link_collector
+	vcs_page_finder
+	vcs_link_collector
 	
 	vcs_iss_page_finder
 	vcs_iss_link_collector
 
-	#cdm_page_finder
-	#cdm_link_collector
+	cdm_page_finder
+	cdm_link_collector
 	
 	 # markit_page_finder
 	 # markit_link_collector

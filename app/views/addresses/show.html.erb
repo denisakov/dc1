@@ -1,0 +1,73 @@
+<p id="notice"><%= notice %></p>
+
+<h4>
+<% t = @address.addressable_type.constantize %>
+<% id = @address.addressable_id.to_s %>
+  Address of <%= t.to_s + " " + id %>:
+  <%= t.find_by_id(id).title %>
+</h4>
+<p>
+  <b>Description:</b>
+  <%= @address.desc %>
+</p>
+<p>
+<b>Building</b><br />
+  <b>Number:</b>
+  <%= @address.bld_num %>
+  <b>Block:</b>
+  <%= @address.bld_block %>
+  <b>Name:</b>
+  <%= @address.bld_block %>
+</p>
+<p>
+  <b>Street:</b>
+  <%= @address.str_name %>
+</p>
+<p>
+  <b>Room</b><br />
+  <b>Type:</b>
+  <%= @address.room_type %>
+  <b>Number:</b>
+  <%= @address.room_num %>
+</p>
+<p>
+  <b>District name:</b>
+  <%= @address.distr_name %>
+</p>
+<p>
+  <b>City name:</b>
+  <%= @address.city_name %>
+</p>
+<p>
+  <b>Province name:</b>
+  <%= @address.province_name %>
+</p>
+<p>
+  <b>Postal code:</b>
+  <%= @address.post_code %>
+</p>
+<p>
+  <b>Region:</b>
+  <%= @address.region %>
+</p>
+<p>
+  <b>Sub-region:</b>
+  <%= @address.sub_region %>
+</p>
+<p>
+  <b>Country:</b>
+  <%= @address.country.name %>
+</p>
+<p>
+  <b>Latitude:</b>
+  <%= @address.lat %>
+</p>
+<p>
+  <b>Longitude:</b>
+  <%= @address.long %>
+</p>
+
+<%= link_to 'Edit', edit_address_path(@address), :class => 'btn btn-mini' %> |
+<%= link_to 'Back', addresses_path, :class => 'btn btn-mini' %>
+<% content_for :title do %>Address(es) of <%= t.find_by_id(id).title %><% end %>
+<% content_for :description do %>My Description<% end %>

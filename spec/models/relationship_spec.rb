@@ -1,5 +1,5 @@
 require 'spec_helper'
 
-describe "roles/index.html.erb" do
+describe Relationship do
   pending "add some examples to (or delete) #{__FILE__}"
 end

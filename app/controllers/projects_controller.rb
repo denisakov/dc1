@@ -1,10 +1,15 @@
 class ProjectsController < ApplicationController
   # GET /projects
   # GET /projects.json
-helper_method :sort_column, :sort_direction
+helper_method :sort_column, :sort_direction, :sort, :sort_by_country
 
   def index
-    @projects = Project.includes(:countries, :documents).order(sort_column + " " + sort_direction).paginate(:page => params[:page], :per_page => 30)
+    if params[:sort] == "c_name"
+      @projects = sort_by_country
+    else
+      @projects = sort
+    end
+
     respond_to do |format|
       format.html # index.html.erb
       format.json { render json: @projects }
@@ -84,16 +89,16 @@ helper_method :sort_column, :sort_direction
 
   private
 
-  # def sort
-  #   Project.joins(:countries).order(sort_column + " " + sort_direction).paginate(:page => params[:page], :per_page => 30)
-  # end
+  def sort
+    Project.order(sort_column + " " + sort_direction).paginate(:page => params[:page], :per_page => 30)
+  end
 
-  # def sort_by_host
-  #   Project.joins(:countries).where(roles: {role: "Host"}).order("countries.name #{sort_direction}").paginate(:page => params[:page], :per_page => 30)
-  # end
+  def sort_by_country
+    Project.joins(:countries).select("projects.*, countries.name as c_name").order("c_name #{sort_direction}").paginate(:page => params[:page], :per_page => 30)
+  end
 
   def sort_column
-    Project.joins(:countries).column_names.include?(params[:sort]) ? params[:sort] : "id"
+    Project.column_names.include?(params[:sort]) ? params[:sort] : "id"
   end
 
   def sort_direction

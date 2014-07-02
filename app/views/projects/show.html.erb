@@ -21,7 +21,7 @@
 </p>
 <p>
 	<b>Validating DOE:</b>
-	<% @project.stakeholders.where(:role => "val_doe").each do |e| %>
+	<% @project.stakeholders.find_all_by_entity_role("val_doe").each do |e| %>
 		<% if e.entity %>
 			<%= e.entity.title %>
 		<% else %>
@@ -31,7 +31,7 @@
 </p>
 <p>
 	<b>Verifying DOEs:</b>
-	<% @project.stakeholders.where(:role => "ver_doe").each do |e| %>
+	<% @project.stakeholders.find_all_by_entity_role("ver_doe").each do |e| %>
 		<% if e.entity %>
 			<%= e.entity.title %>
 		<% else %>
@@ -41,40 +41,36 @@
 </p>
 <p>
 	<b>Host country:</b>
-	<% if @project.roles.where(:role => "Host").first then %>
-		<%= @project.countries.where(:id => @project.roles.where(:role => "Host").first.country_id).first.name %>
+	<% if !@project.addresses.blank? then %>
+		<% @project.addresses.each do |a| %>
+			<%= a.country.name %>
+		<% end %>
 	<% else %>
 		<%= "Unknown" %>
 	<% end %>
-	<%= "(" %>
-	<% @project.stakeholders.where(:role => "host_pp").each do |e| %>
+	(<% @project.stakeholders.find_all_by_entity_role("host_pp").each do |e| %>
 		<% if e.entity %>
 			<%= link_to e.entity.title + ";", entity_path(e.entity) %>
 		<% else %>
 			<%= "Unknown" %>
 		<% end %>
-	<% end %>
-	<%= ")" %>
+	<% end %>)
 </p>
 
 <p>
 <b>Investor countries:</b>
-<% if !@project.roles.where(:role => "Investor").blank? %>
-	<% @project.roles.where(:role => "Investor").each do |r| %>
-        <% if r.country %>
+<% if !@project.stakeholders.find_all_by_country_role("Investor").blank? %>
+	<% @project.stakeholders.find_all_by_country_role("Investor").map(&:country_id).uniq.each do |s| %>
+        <% if c = Country.find_by_id(s) then %>
 	        <ul>
-				<b><%= r.country.name %></b>
-				<%= "(" %>
-					<% @project.stakeholders.where(:role => "a1_pp").each do |e| %>
-						<% if e.entity %>
-							<% if e.entity.country == r.country %>
-								<%= link_to e.entity.title + ";", entity_path(e.entity) %>
-							<% end %>
-						<% else %>
-							<%= "Unknown" %>
-						<% end %>
+				<b><%= c.name %></b>
+				(<% @project.stakeholders.find_all_by_entity_role_and_country_id("a1_pp", c.id).each do |e| %>
+					<% if e.entity then%>
+						<%= link_to e.entity.title + ";", entity_path(e.entity) %>
+					<% else %>
+						<%= "Unknown" %>
 					<% end %>
-				<%= ")" %>
+				<% end %>)
 			</ul>
 		<% end %>
     <% end %>
@@ -102,3 +98,6 @@
 
 <%= link_to 'Edit', edit_project_path(@project), :class => 'btn btn-mini' %> |
 <%= link_to 'Back', projects_path, :class => 'btn btn-mini' %>
+
+<% content_for :title do %>Project <%= @project.standards.first.short_name + @project.refno %><% end %>
+<% content_for :description do %>My Description<% end %>

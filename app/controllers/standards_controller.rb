@@ -1,4 +1,5 @@
 class StandardsController < ApplicationController
+  helper_method :sort_column, :sort_direction
   # GET /standards
   # GET /standards.json
   def index

@@ -2,7 +2,9 @@
 
 <table>
   <tr>
-    <th>Desc</th>
+    
+    <th>Standard</th>
+    <th>Project</th>
     <th></th>
     <th></th>
     <th></th>
@@ -10,7 +12,9 @@
 
 <% @schemes.each do |scheme| %>
   <tr>
-    <td><%= scheme.desc %></td>
+    
+    <td><%= scheme.standard_id %></td>
+    <td><%= scheme.project_id %></td>
     <td><%= link_to 'Show', scheme %></td>
     <td><%= link_to 'Edit', edit_scheme_path(scheme) %></td>
     <td><%= link_to 'Destroy', scheme, method: :delete, data: { confirm: 'Are you sure?' } %></td>

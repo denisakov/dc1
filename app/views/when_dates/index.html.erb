@@ -1,19 +1,19 @@
-(<%= @when_dates.count %>)
+(<%= @when_dates.count %>, Rendered in <%= sprintf('%.3f', (Time.now.usec - @start_time).abs / 1000000.0) %> seconds)
 <%= will_paginate @when_dates, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
-      <th>Date</th>
+      <th><small>Date</small></th>
       
-      <th>Projects</th>
-      <th>Occasions</th>
-      <th>Documents</th>
-      <th>Stakeholders</th>
+      <th><small>Projects</small></th>
+      <th><small>Occasions</small></th>
+      <th><small>Documents</small></th>
+      <th><small>Stakeholders</small></th>
       
-      <th></th>
-      <th></th>
-      <th></th>
+      <th><small></small></th>
+      <th><small></small></th>
+      <th><small></small></th>
     </tr>
 </thead>
 <tbody>
@@ -52,6 +52,5 @@
   </tr>
 <% end %>
 </tbody>
-<%= will_paginate @dates, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
-
 </table>
+<%= will_paginate @dates, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>

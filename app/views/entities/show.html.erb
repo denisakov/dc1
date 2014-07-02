@@ -5,29 +5,52 @@
 	<%= @entity.title %>
 </p>
 
+<p>
+	<b>ID:</b>
+	<%= @entity.id %>
+</p>
+
 <% if @entity.short_title %>
 <p>
 	<b>Short title:</b>
 	<%= @entity.short_title %>
 </p>
 <% end %>
-
 <p>
-	<b>Auth. country:</b>
-	<%= @entity.country.name %>
-</p>
-<p>
-	<b>Projects:</b>
-	<% @entity.projects.each do |p| %>
-		<% if p.refno then %>
-			<small><%= link_to p.refno, project_path(p) %>, </small>
+	<b>Projects:</b> <%= total = @entity.projects.count(:project_id, :distinct => true) %>
+	<div class="row">
+	
+	<% @entity.projects.uniq.each_with_index do |p, i| %> 
+		<% if p.refno %>
+			<%= "<div class='span3' >".html_safe %>
+				<small><%= i+1 %>. 
+				<% if @entity.stakeholders.find_by_project_id(p.id).entity_role == "val_doe" then %>
+					<% role = "Validator" %>
+				<% elsif @entity.stakeholders.find_by_project_id(p.id).entity_role == "ver_doe" then %>
+					<% role = "Verifier" %>
+				<% elsif @entity.stakeholders.find_by_project_id(p.id).entity_role == "host_pp" then %>
+					<% role = "Participant" %>
+				<% elsif @entity.stakeholders.find_by_project_id(p.id).entity_role == "a1_pp" then %>
+					<% role = "Participant" %>
+				<% end %>
+				<%= link_to p.standards.first.short_name + p.refno + " (" + role + ")", project_path(p) %>, </small>
+			<%= "</div>".html_safe %>
 		<% else %>
 			<%= "None" %>
 		<% end %>
 	<% end %>
+	</div>
 </p>
 
-
+<p>
+	<b>Company's address:</b>
+	<% @entity.addresses.each do |a| %>
+		<%= a.country.name %><br />
+	<% end %>
+</p>
 
 <%= link_to 'Edit', edit_entity_path(@entity) %> |
 <%= link_to 'Back', stakeholders_path %>
+
+<% content_for :title do %>Entity | <%= @entity.short_title || @entity.title %><% end %>
+<% content_for :description do %>My Description<% end %>

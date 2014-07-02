@@ -1,10 +1,11 @@
+<%= will_paginate @countries, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
       <th><small><%= sortable "name" %></small></th>
-      <th><small><%= sortable "# of projects" %></small></th>
+      <th><small><%= sortable "hosted projects" %></small></th>
+      <th><small><%= sortable "sponsored projects" %></small></th>
       
-      <th></th>
       <th></th>
       <th></th>
     </tr>
@@ -12,17 +13,21 @@
   <tbody>
     <% @countries.each do |country| %>
       <tr>
-        <td><%= country.name %><small>  (Added at <%= country.updated_at.localtime.strftime('%I:%M:%S') %>)</small></td>
-        <td><%= country.projects.count %></td>
-        
-        <td><%= link_to 'Show', country %></td>
-        <td><%= link_to 'Edit', edit_country_path(country) %></td>
-        <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+        <td><%= link_to country.name, country %><small>  (Added at <%= country.updated_at.localtime.strftime('%I:%M:%S') %>)</small></td>
+        <td><% s = Stakeholder.where('country_id = ?', country.id) %>
+            <%= s.where('country_role = ?' , "Host").count %>
+        </td>
+        <td><%= s.where('country_role = ?' , "Investor").count %></td>
+        <td><%= link_to 'Edit', edit_country_path(country), :class => 'btn btn-mini' %></td>
+        <td><%= link_to 'Destroy', country, method: :delete, data: { confirm: 'Are you sure?' }, :class => 'btn btn-mini' %></td>
       </tr>
     <% end %>
   </tbody>
 </table>
-
+<%= will_paginate @countries, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 <br />
 
 <%= link_to 'New Country', new_country_path %>
+
+<% content_for :title do %>Countries<% end %>
+<% content_for :description do %>My Description<% end %>

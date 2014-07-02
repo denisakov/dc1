@@ -1,4 +1,4 @@
-<%= @projects.count %> projects in the database
+<%= @projects.count %>, Rendered in <%= sprintf('%.3f', (Time.now.usec - @start_time).abs / 1000000.0) %> seconds
 
 <%= will_paginate @projects, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
 
@@ -11,10 +11,10 @@
         </label>
       </th>
       <th><small>Standard</small></th>
-      <th><small>Ref №</small></th>
-      <th><small><%= sortable "title" %></small></th>
+      <th width="60px"><small><%= sortable "refno", "Ref №" %></small></th>
+      <th width="600px"><small><%= sortable "title" %></small></th>
       <th><small>Docs</small></th>
-      <th><small>Host Party</small></th> <!--<%= sortable "countries.name", "Host Party" %>-->
+      <th width="100px"><small><%= sortable "c_name", "Host country" %></small></th>
       <th><small><%= "Annex-I Party" %></small></th>
       <th></th>
       <th></th>
@@ -39,14 +39,14 @@
     <td valign="top"><small><%= link_to p.title, project_path(p) %></small></td>
     <td><%= p.documents.count %></td>
     <td>
-      <% if p.roles.where(:role => "Host").first then %>
-        <%= p.countries.where(:id => p.roles.where(:role => "Host").first.country_id).first.name %>
+      <% p.countries.each do |c|%>
+        <%= c.name %>
       <% end %>
     </td>
    <td>
-      <% if p.roles.where(:role => "Investor") then %>
-        <% p.roles.where(:role => "Investor").each do |x| %>
-          <% p.countries.where(:id => x.country_id).each do |y| %>
+      <% if c = p.stakeholders.where(:country_role => "Investor") then %>
+        <% c.map(&:country_id).uniq.each do |s| %>
+          <% Country.where(:id => s).each do |y| %>
             <% if y.name == "United Kingdom of Great Britain and Northern Ireland" then %>
               -&nbsp;<%= "UK" %><br />
             <% else %>

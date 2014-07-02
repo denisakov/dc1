@@ -1,0 +1,7 @@
+<p>
+  <b>Address is for <%= @address.addressable_type + " " + @address.addressable_id.to_s %>:</b>
+</p>
+<%= render 'form' %>
+
+<%= link_to 'Show', @address %> |
+<%= link_to 'Back', addresses_path %>

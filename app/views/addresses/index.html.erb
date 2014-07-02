@@ -1,0 +1,34 @@
+<%= (@addresses.count) %>
+<%= will_paginate @addresses, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
+<table class="table table-condensed table-hover">
+  <thead>
+  <tr>
+    <th><small><%= sortable "addressable_type", "Address for"%></small></th>
+    <th><small><%= sortable "country" %></small></th>
+    
+    <th><small></small></th>
+    <th><small></small></th>
+  </tr>
+  </thead>
+  <tbody>
+
+<% @addresses.each do |address| %>
+  <tr>
+    <td>
+      <%= link_to address.addressable_type + " " + address.addressable_id.to_s, address %>
+    </td>
+    <td><%= address.country.name %></td>
+    
+    <td><%= link_to 'Edit', edit_address_path(address), :class => 'btn btn-mini' %></td>
+    <td><%= link_to 'Destroy', address, method: :delete, data: { confirm: 'Are you sure?' }, :class => 'btn btn-mini' %></td>
+  </tr>
+<% end %>
+</tbody>
+</table>
+<%= will_paginate @addresses, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+<br />
+
+<%= link_to 'New Address', new_address_path %>
+<% content_for :title do %>Addresses<% end %>
+<% content_for :description do %>My Description<% end %>

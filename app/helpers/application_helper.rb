@@ -4,7 +4,11 @@ module ApplicationHelper
 
 		direction = column == sort_column && sort_direction == "asc" ? "desc" : "asc"
 
-		link_to "#{title} <i class='#{direction == "desc" ? "icon-chevron-down" : "icon-chevron-up"}'></i>".html_safe, {:sort => column, :direction => direction}#, {:class => css_class}
+		if column == "c_name"
+			direction = column == "c_name" && sort_direction == "asc" ? "desc" : "asc"
+		end
+
+		link_to "#{title} <i class='#{direction.present? && direction == "desc" ? "icon-chevron-down" : "icon-chevron-up"}'></i>".html_safe, {:sort => column, :direction => direction}
 	end
 end
 

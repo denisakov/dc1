@@ -1,4 +1,7 @@
-(<%= @entities.count %>)
+(<%= @entities.count %>, Rendered in <%= sprintf('%.3f', (Time.now.usec - @start_time).abs / 1000000.0) %> seconds)
+
+<%= will_paginate @entities, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
 <table class="table table-condensed table-hover">
   <thead>
     <tr>
@@ -28,15 +31,21 @@
     <td><%= link_to entity.title, entity %></td>
     <td><%= entity.short_title %></td>
     <td>
-      <% if entity.country.name == "United Kingdom of Great Britain and Northern Ireland" then %>
-        <%= "UK" %><br />
-      <% else %>
-        <%= entity.country.name %><br />
+      <% entity.addresses.uniq.each do |a| %>
+        <% if a.country.name == "United Kingdom of Great Britain and Northern Ireland" then %>
+          <%= "UK" %><br />
+        <% elsif a.country.name == "United States of America" %>
+          <%= "USA" %><br />
+        <% elsif a.country.name == "Republic of Korea" %>
+          <%= "Korea" %><br />
+        <% else %>
+          <%= a.country.name %><br />
+        <% end %>
       <% end %>
     </td>
     <td><%= entity.projects.count %></td>
-    <td><%= link_to 'Edit', edit_entity_path(entity) %></td>
-    <td><%= link_to 'Destroy', entity, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+    <td><%= link_to 'Edit', edit_entity_path(entity), :class => 'btn btn-mini' %></td>
+    <td><%= link_to 'Destroy', entity, method: :delete, data: { confirm: 'Are you sure?' }, :class => 'btn btn-mini' %></td>
   </tr>
 <% end %>
 </tbody>
@@ -44,4 +53,9 @@
 
 <br />
 
+<%= will_paginate @entities, :previous_label => h("<"), :next_label => h(">"), :class => "pagination pagination-mini text-center" %>
+
 <%= link_to 'New entity', new_entity_path %>
+
+<% content_for :title do %>Entities<% end %>
+<% content_for :description do %>My Description<% end %>
