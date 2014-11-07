@@ -1386,6 +1386,7 @@ def vcs_iss_list_crawler
 				@agent.post(link, "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => x)
 				@agent.page.encoding = 'ISO-8859-1'
 				@agent.page.encoding = 'cp1252'
+<<<<<<< Updated upstream
 				
 				 @agent.page.links_with(:href => /Tab=Projects/)[1..-1].each do |y|
 					iss_date = parse_date(y.node.parent.parent.children[0].text)
@@ -1408,6 +1409,9 @@ def vcs_iss_list_crawler
 
 				end
 				#page_html = @agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
+=======
+				#vcs_page_html = #@agent.page.search("html body div#wrapper.project-detail div#content div#content-inner div#main.clearfix")
+>>>>>>> Stashed changes
 			}
 			#to go through all issuance pages as a list
 			#@agent.post('https://vcsprojectdatabase2.apx.com/myModule/Interactive.asp?tc=1&Tab=VCUs&a=1', "X999field" => "Issuance Date", "X999sort" => "Desc", "X999tablenumber" => "2", "X999whichpage" => "2")

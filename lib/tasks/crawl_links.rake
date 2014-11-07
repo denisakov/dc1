@@ -433,7 +433,11 @@ namespace :crawl do
 	end
 	
 	cdm_doe_link_finder
+<<<<<<< Updated upstream
 	vcs_doe_link_finder
+=======
+	#vcs_doe_link_finder
+>>>>>>> Stashed changes
 
 	vcs_page_finder
 	vcs_link_collector
@@ -444,7 +448,7 @@ namespace :crawl do
 	cdm_page_finder
 	cdm_link_collector
 	
-	 # markit_page_finder
-	 # markit_link_collector
+	markit_page_finder
+	markit_link_collector
 	end
 end
